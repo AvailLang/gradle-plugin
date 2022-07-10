@@ -156,7 +156,9 @@ open class AvailExtension constructor(
 	 *   The name of the root to add.
 	 * @param uri
 	 *   The uri path to the root. This defaults to the root URI to be located
-	 *   in the [rootsDirectory]
+	 *   in the [rootsDirectory].
+	 * @param description
+	 *   An optional description of this root.
 	 * @param initializer
 	 *   A lambda that accepts the created [AvailRoot] and is executed after
 	 *   all roots have been added.
@@ -165,9 +167,10 @@ open class AvailExtension constructor(
 	fun root(
 		name: String,
 		uri: String = "$rootsDirectory/$name",
+		description: String = "",
 		initializer: (AvailRoot) -> Unit = {})
 	{
-		root(AvailRoot(name, uri, initializer))
+		root(AvailRoot(name, uri, description, initializer))
 	}
 
 	/**
@@ -175,12 +178,14 @@ open class AvailExtension constructor(
 	 *
 	 * @param name
 	 *   The [CreateAvailRoot.name].
+	 * @param description
+	 *   An optional description of this root.
 	 * @return
 	 *   The created Root.
 	 */
 	@Suppress("Unused")
-	fun createRoot (name: String): CreateAvailRoot =
-		CreateAvailRoot(name, "$rootsDirectory/$name").apply {
+	fun createRoot (name: String, description: String = ""): CreateAvailRoot =
+		CreateAvailRoot(name, "$rootsDirectory/$name", description).apply {
 			createRoots[name] = this
 			roots[name] = this
 		}

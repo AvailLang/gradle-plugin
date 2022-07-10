@@ -33,11 +33,8 @@
 package avail.plugin
 
 import org.gradle.api.Project
-import org.gradle.api.file.DuplicatesStrategy
-import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.net.URI
-import java.util.jar.Manifest
 import kotlin.text.StringBuilder
 
 /**
@@ -60,6 +57,8 @@ import kotlin.text.StringBuilder
  *   The name of the root.
  * @param uri
  *   The String [URI] location of the root.
+ * @param description
+ *   An optional description of the root.
  * @param action
  *   A lambda that accepts this [AvailRoot] and is executed after all roots have
  *   been added.
@@ -67,6 +66,7 @@ import kotlin.text.StringBuilder
 open class AvailRoot constructor(
 	val name: String,
 	val uri: String,
+	val description: String = "",
 	var action: (AvailRoot) -> Unit = {}
 ) : Comparable<AvailRoot>
 {
@@ -130,19 +130,12 @@ open class AvailRoot constructor(
 class CreateAvailRoot constructor(
 	name: String,
 	uri: String,
+	description: String = "",
 	action: (AvailRoot) -> Unit = {}
-) : AvailRoot(name, uri, action)
+) : AvailRoot(name, uri, description, action)
 {
-	/**
-	 * The [AvailLibraryPackageContext] that will be used to package this Avail
-	 * root into a Jar file or `null` if packaging not desired.
-	 */
-	@Suppress("unused")
-	var packageContext: AvailLibraryPackageContext? = null
-
 	override val configString: String get() = buildString {
 		append("\n\t\t$name")
-		packageContext?.let { append(it.configString) }
 		append("\n\t\t\tRoot Contents:")
 		this@CreateAvailRoot.appendRootHierarchy(this)
 	}
@@ -228,101 +221,6 @@ class CreateAvailRoot constructor(
 	{
 		modulePackages.forEach { it.hierarchyPrinter(1, sb) }
 		modules.forEach { it.hierarchyPrinter(1, sb) }
-	}
-
-	/**
-	 * Optionally package the root given a [packageContext] is set.
-	 *
-	 * @param project
-	 *   The host project.
-	 */
-	internal fun packageLibrary (project: Project)
-	{
-		packageContext?.createAndRunTask(project)
-	}
-
-	/**
-	 * Contains information related to the packaging of a [CreateAvailRoot] into a
-	 * jar.
-	 *
-	 * @author Richard Arriaga &lt;rich@availlang.org&gt;
-	 *
-	 * @property packageNameBase
-	 *   The base name of the jar file that will contain the Avail root.
-	 * @property exportDirectory
-	 *   The absolute path to the directory where the Avail root library JAR should
-	 *   be exported to.
-	 */
-	inner class AvailLibraryPackageContext constructor(
-		private val packageNameBase: String,
-		private val exportDirectory: String)
-	{
-		/**
-		 * The map of [Manifest] key to [Manifest] value to be included in the
-		 * library jar.
-		 */
-		@Suppress("MemberVisibilityCanBePrivate")
-		val manifestPairs: MutableMap<String, String> = mutableMapOf()
-
-		/**
-		 * The name of the [Jar] task that will be used to package the library.
-		 */
-		private val packageTask = "package-library-$packageNameBase"
-
-		/**
-		 * An optional action to be run post build of the library jar file. This
-		 * action accepts the [File] that was just assembled.
-		 */
-		var postPackageAction: (File) -> Unit = {}
-
-		/**
-		 * The printable configuration screen.
-		 */
-		internal val configString: String get() = buildString {
-			append("\n\t\t\tPackage Root\n\t\t\t\tas: $packageNameBase.jar")
-			append("\n\t\t\t\texport to: $exportDirectory")
-		}
-
-		/**
-		 * Add the [packageTask] to the host project.
-		 *
-		 * @param project
-		 *   The host project.
-		 */
-		internal fun createAndRunTask (project: Project)
-		{
-			val fullPath = "$exportDirectory/$packageNameBase.jar"
-			project.mkdir(exportDirectory)
-			project.tasks.create(packageTask, AvailJarPackager::class.java)
-			{
-				group = AvailPlugin.AVAIL
-				description =
-					"Package ${this@CreateAvailRoot.name} into " +
-						"$packageNameBase.jar"
-				archiveBaseName.set(packageNameBase)
-				archiveClassifier.set("")
-				archiveVersion.set("")
-				into(project.file(exportDirectory))
-				from(this@CreateAvailRoot.uri) {
-					include("**/*.*")
-				}
-				duplicatesStrategy = DuplicatesStrategy.FAIL
-				manifestPairs.forEach { (t, u) ->
-					manifest.attributes[t] = u
-				}
-			}.doCopy()
-			val file = project.file(fullPath)
-			if (file.exists())
-			{
-				println("Packaged ${this@CreateAvailRoot.name}: $fullPath")
-				postPackageAction(file)
-			}
-			else
-			{
-				System.err.println("Could not build or access $fullPath")
-			}
-
-		}
 	}
 }
 
@@ -597,14 +495,14 @@ class AvailModulePackage constructor(
 class AvailStandardLibrary internal constructor(var jarLibBaseName: String )
 {
 	/**
-	 * The name of the root as it will used by Avail. Defaults to "avail".
+	 * The name of the root as it will be used by Avail. Defaults to "avail".
 	 */
 	var name: String = AvailPlugin.AVAIL
 
 	/**
-	 * The version of the Avail standard library to use (org.availlang:avail-stdlib). By
-	 * default, it is set to `+` which indicates the latest version in the
-	 * repository should be used.
+	 * The version of the Avail standard library to use
+	 * (org.availlang:avail-stdlib). By default, it is set to `+` which
+	 * indicates the latest version in the repository should be used.
 	 */
 	var stdlibVersion = "+"
 

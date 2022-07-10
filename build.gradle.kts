@@ -64,7 +64,7 @@ gradlePlugin {
 }
 
 group = "avail"
-version = "1.6.1.rc1-SNAPSHOT"// Versions.getReleaseVersion()
+version = "1.6.1.rc2-SNAPSHOT"// Versions.getReleaseVersion()
 
 repositories {
 	mavenLocal()

@@ -51,7 +51,7 @@ class AvailPlugin : Plugin<Project>
 		// Create Custom Project Configurations
 		target.configurations.run {
 			create(AVAIL_LIBRARY)
-			create(AvailWorkbenchTask.WORKBENCH_INTERNAL_CONFIG)
+//			create(AvailWorkbenchTask.WORKBENCH_INTERNAL_CONFIG)
 		}
 
 		// Create AvailExtension and attach it to the target host Project
@@ -119,45 +119,45 @@ class AvailPlugin : Plugin<Project>
 			println(extension.printableConfig)
 		}
 
-		target.tasks.register(
-			"assembleAndRunWorkbench", AvailWorkbenchTask::class.java)
-		{
-			// Create Dependencies
-			group = AVAIL
-			description = "My custom workbench build."
-			workbenchJarBaseName = WORKBENCH
-			extension.roots.forEach { (t, u) ->  root(t, u.uri)}
-			maximumJavaHeap = "6g"
-			vmOption("-ea")
-			vmOption("-XX:+UseCompressedOops")
-			vmOption("-DavailDeveloper=true")
-		}
+//		target.tasks.register(
+//			"assembleAndRunWorkbench", AvailWorkbenchTask::class.java)
+//		{
+//			// Create Dependencies
+//			group = AVAIL
+//			description = "My custom workbench build."
+//			workbenchJarBaseName = WORKBENCH
+//			extension.roots.forEach { (t, u) ->  root(t, u.uri)}
+//			maximumJavaHeap = "6g"
+//			vmOption("-ea")
+//			vmOption("-XX:+UseCompressedOops")
+//			vmOption("-DavailDeveloper=true")
+//		}
 
-		target.tasks.register(
-			"assembleArtifact", AvailAssembleTask::class.java)
-		{
-			// Create Dependencies
-			group = AVAIL
-			description = "Assembles project into deployable, runnable JAR."
-			jarBaseName = project.name
-			extension.roots.forEach { (t, u) ->  root(t, u.uri)}
-			maximumJavaHeap = "6g"
-			vmOption("-ea")
-			vmOption("-XX:+UseCompressedOops")
-			vmOption("-DavailDeveloper=true")
-		}
-
-		target.tasks.register("packageRoots", DefaultTask::class.java)
-		{
-			group = AVAIL
-			description = "Package the roots created in the Avail extension " +
-				"that have been provided an AvailLibraryPackageContext"
-			doLast {
-				extension.createRoots.values.forEach {
-					it.packageLibrary(target)
-				}
-			}
-		}
+//		target.tasks.register(
+//			"assembleArtifact", AvailAssembleTask::class.java)
+//		{
+//			// Create Dependencies
+//			group = AVAIL
+//			description = "Assembles project into deployable, runnable JAR."
+//			jarBaseName = project.name
+//			extension.roots.forEach { (t, u) ->  root(t, u.uri)}
+//			maximumJavaHeap = "6g"
+//			vmOption("-ea")
+//			vmOption("-XX:+UseCompressedOops")
+//			vmOption("-DavailDeveloper=true")
+//		}
+//
+//		target.tasks.register("packageRoots", DefaultTask::class.java)
+//		{
+//			group = AVAIL
+//			description = "Package the roots created in the Avail extension " +
+//				"that have been provided an AvailLibraryPackageContext"
+//			doLast {
+//				extension.createRoots.values.forEach {
+//					it.packageLibrary(target)
+//				}
+//			}
+//		}
 	}
 
 	private fun getImplementationVersion(jar: File): String? =
