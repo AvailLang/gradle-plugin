@@ -32,10 +32,10 @@
 
 package avail.plugin
 
-import org.gradle.api.Project
-import java.io.File
+import org.availlang.artifact.AvailRootArtifactTarget
+import org.availlang.artifact.manifest.AvailManifestRoot
 import java.net.URI
-import kotlin.text.StringBuilder
+import java.security.MessageDigest
 
 /**
  * `AvailRoot` represents an Avail source root.
@@ -46,6 +46,13 @@ import kotlin.text.StringBuilder
  *   The name of the root.
  * @property uri
  *   The String [URI] location of the root.
+ * @property availModuleExtensions
+ *   The file extensions that signify files that should be treated as Avail
+ *   modules.
+ * @property entryPoints
+ *   The Avail entry points exposed by this root.
+ * @property description
+ *   An optional description of the root.
  * @property action
  *   A lambda that accepts this [AvailRoot] and is executed after all roots have
  *   been added.
@@ -57,6 +64,11 @@ import kotlin.text.StringBuilder
  *   The name of the root.
  * @param uri
  *   The String [URI] location of the root.
+ * @param availModuleExtensions
+ *   The file extensions that signify files that should be treated as Avail
+ *   modules.
+ * @param entryPoints
+ *   The Avail entry points exposed by this root.
  * @param description
  *   An optional description of the root.
  * @param action
@@ -66,10 +78,36 @@ import kotlin.text.StringBuilder
 open class AvailRoot constructor(
 	val name: String,
 	val uri: String,
+	val availModuleExtensions: List<String> = listOf("avail"),
+	val entryPoints: List<String> = listOf(),
 	val description: String = "",
 	var action: (AvailRoot) -> Unit = {}
 ) : Comparable<AvailRoot>
 {
+	/**
+	 * Construct an [AvailRoot].
+	 *
+	 * @param uri
+	 *   The String [URI] location of the root.
+	 * @param manifestRoot
+	 *   The [AvailManifestRoot] that describes this [AvailRoot].
+	 * @param action
+	 *   A lambda that accepts this [AvailRoot] and is executed after all roots have
+	 *   been added.
+	 */
+	constructor(
+		uri: String,
+		manifestRoot: AvailManifestRoot,
+		action: (AvailRoot) -> Unit
+	): this(
+		manifestRoot.name,
+		uri,
+		manifestRoot.availModuleExtensions,
+		manifestRoot.entryPoints,
+		manifestRoot.description,
+		action)
+
+
 	/** The VM Options, `-DavailRoot`, root string. */
 	val rootString: String by lazy { "$name=$uri" }
 
@@ -77,6 +115,40 @@ open class AvailRoot constructor(
 	 * The printable configuration for this root.
 	 */
 	internal open val configString: String get() = "\n\t$name ($uri)"
+
+	/**
+	 * Create an [AvailManifestRoot] from this [AvailRoot].
+	 *
+	 * @param digestAlgorithm
+	 *   The [MessageDigest] algorithm to use to create the digests for all the
+	 *   root's contents. This must be a valid algorithm accessible from
+	 *   [java.security.MessageDigest.getInstance].
+	 * @return
+	 *   An [AvailManifestRoot].
+	 */
+	@Suppress("MemberVisibilityCanBePrivate")
+	fun manifestRoot (digestAlgorithm: String): AvailManifestRoot =
+		AvailManifestRoot(
+			name,
+			availModuleExtensions,
+			entryPoints,
+			description,
+			digestAlgorithm)
+
+	/**
+	 * Create an [AvailRootArtifactTarget] from this [AvailRoot].
+	 *
+	 * @param digestAlgorithm
+	 *   The [MessageDigest] algorithm to use to create the digests for all the
+	 *   root's contents. This must be a valid algorithm accessible from
+	 *   [java.security.MessageDigest.getInstance].
+	 * @return
+	 *   An [AvailRootArtifactTarget].
+	 */
+	fun availRootArtifactTarget (
+		digestAlgorithm: String
+	): AvailRootArtifactTarget =
+		AvailRootArtifactTarget(uri, manifestRoot(digestAlgorithm))
 
 	// Module packages always come before modules.
 	override fun compareTo(other: AvailRoot): Int =
@@ -109,418 +181,4 @@ open class AvailRoot constructor(
 		result = 31 * result + uri.hashCode()
 		return result
 	}
-}
-
-/**
- * `CreateAvailRoot` is an [AvailRoot] that is intended to be created.
- *
- * @author Richard Arriaga &lt;rich@availlang.org&gt;
- *
- * @constructor
- * Construct an [AvailRoot].
- *
- * @param name
- *   The name of the root.
- * @param uri
- *   The String [URI] location of the root.
- * @param action
- *   A lambda that accepts this [AvailRoot] and is executed after all roots have
- *   been added.
- */
-class CreateAvailRoot constructor(
-	name: String,
-	uri: String,
-	description: String = "",
-	action: (AvailRoot) -> Unit = {}
-) : AvailRoot(name, uri, description, action)
-{
-	override val configString: String get() = buildString {
-		append("\n\t\t$name")
-		append("\n\t\t\tRoot Contents:")
-		this@CreateAvailRoot.appendRootHierarchy(this)
-	}
-
-	/**
-	 * Add an [AvailModule] with the given name to the top level of this
-	 * [CreateAvailRoot].
-	 *
-	 * @param name
-	 *   The name of the [AvailModule] to create and add.
-	 * @param extension
-	 *   The Module's file extension. Defaults to `"avail"`.
-	 *   Do not prefix with ".".
-	 * @return
-	 *   The created [AvailModule].
-	 */
-	@Suppress("unused")
-	fun module (name: String, extension: String = "avail"): AvailModule =
-		AvailModule(name, extension).apply {
-			modules.add(this)
-		}
-
-	/**
-	 * Add an [AvailModulePackage] with the given name to the top level of this
-	 * [CreateAvailRoot].
-	 *
-	 * @param name
-	 *   The name of the [AvailModulePackage] to create and add.
-	 * @param extension
-	 *   The Module's file extension. Defaults to `"avail"`.
-	 *   Do not prefix with ".".
-	 * @return
-	 *   The created [AvailModulePackage].
-	 */
-	@Suppress("unused")
-	fun modulePackage (
-		name: String, extension: String = "avail"): AvailModulePackage =
-			AvailModulePackage(name, extension).apply {
-				modulePackages.add(this)
-			}
-
-	/**
-	 * The set of [AvailModule]s to add to the top level of this [AvailRoot].
-	 */
-	private val modules =
-		mutableSetOf<AvailModule>()
-
-	/**
-	 * The set of [AvailModulePackage]s to add to the top level of this
-	 * [AvailRoot].
-	 */
-	private val modulePackages =
-		mutableSetOf<AvailModulePackage>()
-
-	/**
-	 * Create the [modules] and [modulePackages] in [roots directory][uri].
-	 *
-	 * @param project
-	 *   The host [Project] running the Avail Plugin.
-	 */
-	internal fun create (project: Project, extension: AvailExtension)
-	{
-		modulePackages.forEach {
-			if (it.moduleHeaderCommentBody.isEmpty()
-				&& extension.moduleHeaderCommentBody.isNotEmpty())
-			{
-				it.moduleHeaderCommentBody = extension.moduleHeaderCommentBody
-			}
-			it.create(project, uri)
-		}
-		modules.forEach {
-			it.create(project, uri)
-		}
-	}
-
-	/**
-	 * Append a printable tree representation of this entire root.
-	 *
-	 * @param sb
-	 *   The [StringBuilder] to add the hierarchy to.
-	 */
-	fun appendRootHierarchy (sb: StringBuilder)
-	{
-		modulePackages.forEach { it.hierarchyPrinter(1, sb) }
-		modules.forEach { it.hierarchyPrinter(1, sb) }
-	}
-}
-
-/**
- * Represents an Avail module file to be added. Will only be created if it does
- * not exist when the initialization runs.
- *
- * @author Richard Arriaga &lt;rich@availlang.org&gt;
- *
- * @property baseName
- *   The name of the module without the file extension.
- *
- * @constructor
- * Construct an [AvailModule].
- *
- * @param baseName
- *   The name of the module without the file extension.
- * @param fileExtension
- *   The file extension to use for the module. This defaults to `avail`.
- *   Do not prefix with ".".
- */
-open class AvailModule constructor(
-	private val baseName: String,
-	fileExtension: String = "avail"): Comparable<AvailModule>
-{
-	/**
-	 * The file name. *e.g. Avail.avail*.
-	 */
-	val fileName: String = "$baseName.$fileExtension"
-
-	/**
-	 * Raw module header comment. This is typically for a copyright. Will be
-	 * wrapped in comment along with file name. If comment body is empty
-	 * (*default*), will only provide the file name in the header comment.
-	 */
-	var moduleHeaderCommentBody: String = ""
-
-	/**
-	 * The list of module `Versions` to populate the `Versions` section of the
-	 * module header.
-	 */
-	@Suppress("unused")
-	var versions: List<String> = listOf()
-
-	/**
-	 * The list of Avail Modules this [AvailModule] will `Extend` for Avail
-	 * Modules that `Use`/`Extend` this module as well as use in the `Body`
-	 */
-	@Suppress("unused")
-	var extends: List<String> = listOf()
-
-	/**
-	 * The list of Avail Modules this [AvailModule] will be able to `Use`
-	 * in the `Body` of this module..
-	 */
-	@Suppress("unused")
-	var uses: List<String> = listOf()
-
-	/**
-	 * The file contents that will be written to the file upon a call to create.
-	 */
-	internal val fileContents: String get() =
-		buildString {
-			// File header comment
-			append("/*\n")
-			append(" * ")
-			append(fileName)
-			if (moduleHeaderCommentBody.isNotEmpty())
-			{
-				moduleHeaderCommentBody.split("\n").forEach {
-					append("\n * ")
-					append(it)
-				}
-			}
-			append("\n */")
-
-			// Module
-			append("\n\nModule \"")
-			append(baseName)
-			append('"')
-
-			// Versions
-			if (versions.isNotEmpty())
-			{
-				append("\nVersions")
-				append(versions.joinToString(",\n\t", "\n\t") { "\"$it\"" })
-			}
-
-			// Uses
-			if (uses.isNotEmpty())
-			{
-				append("\nUses")
-				append(uses.joinToString(",\n\t", "\n\t") { "\"$it\"" })
-			}
-
-			// Extends
-			if (extends.isNotEmpty())
-			{
-				append("\nExtends")
-				append(extends.joinToString(",\n\t", "\n\t") { "\"$it\"" })
-			}
-			append("\nBody\n")
-		}
-
-	/**
-	 * Create the Avail Module File. This will do nothing if the file exists;
-	 * will only be created if it does not exist when the initialization runs.
-	 *
-	 * @param project
-	 *  The host project executing this task.
-	 * @param directory
-	 *  The location to place the Module.
-	 */
-	internal open fun create (project: Project, directory: String)
-	{
-		val module = project.file("$directory/$fileName")
-		if (!module.exists())
-		{
-			project.mkdir(directory)
-			module.writeText(fileContents)
-		}
-	}
-
-	/**
-	 * Add the printable hierarchical position representation of this
-	 * [AvailModule] in its respective [AvailRoot].
-	 *
-	 * @param level
-	 *   The depth in the tree where this module sits.
-	 * @param sb
-	 *   The [StringBuilder] to add the printable representation to.
-	 */
-	open fun hierarchyPrinter (level: Int, sb: StringBuilder): StringBuilder =
-		sb.apply {
-			val prefix = hierarchyPrinterPrefix(level)
-			append(prefix)
-			append(" ")
-			append(fileName)
-		}
-
-	/**
-	 * Create the prefix string for each line printed in [hierarchyPrinter].
-	 *
-	 * @param level
-	 *   The depth in the tree where this module sits.
-	 */
-	protected fun hierarchyPrinterPrefix(level: Int) =
-		(0 until level)
-			.map { "－" }
-			.joinToString(prefix = "\n\t\t\t\t|", separator = "") { it }
-
-	override fun compareTo(other: AvailModule): Int =
-		fileName.compareTo(other.fileName)
-
-	override fun equals(other: Any?): Boolean =
-		when
-		{
-			this === other -> true
-			other !is AvailModule -> false
-			fileName != other.fileName -> false
-			else -> true
-		}
-
-	override fun hashCode(): Int = fileName.hashCode()
-}
-
-/**
- * `AvailModulePackage` is an Avail package with a module representative.
- *
- * @author Richard Arriaga &lt;rich@availlang.org&gt;
- *
- * @constructor
- * Construct an [AvailModulePackage].
- *
- * @param baseName
- *   The name of the module without the file extension.
- * @param fileExtension
- *   The file extension to use for the module. This defaults to `avail`
- */
-class AvailModulePackage constructor(
-	baseName: String,
-	fileExtension: String = "avail"
-) : AvailModule(baseName, fileExtension)
-{
-	/**
-	 * The set of [AvailModule]'s to create in this module.
-	 */
-	private val otherModules = mutableSetOf<AvailModule>()
-
-	/**
-	 * Add an [AvailModule] to be added to this [AvailModulePackage].
-	 *
-	 * @param baseName
-	 *   The name of the module without the file extension.
-	 * @param fileExtension
-	 *   The file extension to use for the module. This defaults to `avail`.
-	 * @return
-	 *   The created [AvailModule].
-	 */
-	@Suppress("Unused")
-	fun addModule(
-		baseName: String, fileExtension: String = "avail"): AvailModule =
-			AvailModule(baseName, fileExtension).apply {
-				this@AvailModulePackage.otherModules.add(this)
-			}
-
-	/**
-	 * Add an [AvailModulePackage] to be added to this [AvailModulePackage].
-	 *
-	 * @param baseName
-	 *   The name of the module without the file extension.
-	 * @param fileExtension
-	 *   The file extension to use for the module. This defaults to `avail`.
-	 * @return
-	 *   The created [AvailModulePackage].
-	 */
-	@Suppress("Unused")
-	fun addModulePackage(
-		baseName: String, fileExtension: String = "avail"): AvailModulePackage =
-			AvailModulePackage(baseName, fileExtension).apply {
-				this@AvailModulePackage.otherModules.add(this)
-			}
-
-	override fun create (project: Project, directory: String)
-	{
-		project.mkdir(directory)
-		val modulePackage = "$directory/$fileName"
-		project.mkdir(modulePackage)
-		val module = project.file("$modulePackage/$fileName")
-		if (!module.exists())
-		{
-			module.writeText(fileContents)
-		}
-		// Create modules in this module package.
-		otherModules.forEach {
-			it.create(project, modulePackage)
-		}
-	}
-
-	override fun hierarchyPrinter (level: Int, sb: StringBuilder): StringBuilder =
-		sb.apply {
-			val prefix = hierarchyPrinterPrefix(level)
-			append(prefix)
-			append(" ")
-			append(fileName)
-			append(prefix)
-			append("－ ")
-			append(fileName)
-			otherModules.toList().sorted().forEach {
-				it.hierarchyPrinter(level + 1, sb)
-			}
-		}
-}
-
-/**
- * Helper used to provide configurability to the
- * [avail standard library jar][AvailPlugin.AVAIL_STDLIB_BASE_JAR_NAME].
- *
- * @author Richard Arriaga &lt;rich@availlang.org&gt;
- *
- * @property jarLibBaseName
- *   The base name the `avail-stdlib` jar file that should be named without the
- *   `.jar` extension. This will be used to construct the [AvailRoot.uri].
- *
- * @constructor
- * Construct an [AvailStandardLibrary].
- *
- * @param jarLibBaseName
- *   The base name the `avail-stdlib` jar file that should be named without the
- *   `.jar` extension. This will be used to construct the [AvailRoot.uri].
- */
-class AvailStandardLibrary internal constructor(var jarLibBaseName: String )
-{
-	/**
-	 * The name of the root as it will be used by Avail. Defaults to "avail".
-	 */
-	var name: String = AvailPlugin.AVAIL
-
-	/**
-	 * The version of the Avail standard library to use
-	 * (org.availlang:avail-stdlib). By default, it is set to `+` which
-	 * indicates the latest version in the repository should be used.
-	 */
-	var stdlibVersion = "+"
-
-	/**
-	 * Provide the corresponding [AvailRoot] for this [AvailStandardLibrary].
-	 *
-	 * @param rootDir
-	 *   The roots directory where the jar file should be.
-	 */
-	internal fun root(rootDir: String): AvailRoot =
-		AvailRoot(name, "jar:$rootDir/$jarLibBaseName.jar")
-
-	/**
-	 * Answer the file where the `avail-stdlib.jar` should be copied to.
-	 *
-	 * @param rootDir
-	 *   The roots directory where the jar file should be.
-	 */
-	internal fun jar (rootDir: String): File =
-		File("$rootDir/$jarLibBaseName.jar")
 }

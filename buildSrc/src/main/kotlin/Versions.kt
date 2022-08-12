@@ -41,33 +41,5 @@ import java.util.Properties
  */
 object Versions
 {
-	/** The version of Kotlin to be used by Avail. */
-	const val kotlin = "1.6.21"
 
-	/** The JVM target version for Kotlin. */
-	const val jvmTarget = 17
-
-	/** The JVM target version for Kotlin. */
-	const val jvmTargetString = jvmTarget.toString()
-
-	/** The language level version of Kotlin. */
-	const val kotlinLanguage = "1.6"
-
-	/**
-	 * The location of the properties file that contains the last published
-	 * release of the avail libraries.
-	 */
-	@Suppress("MemberVisibilityCanBePrivate")
-	const val releaseVersionFile =
-		"src/main/resources/releaseVersion.properties"
-
-	/**
-	 * The version for `org.availlang:avail`.
-	 */
-	const val availVersion = "1.6.1"
-
-	/**
-	 * The version for `org.availlang:avail-stdlib`.
-	 */
-	const val availStdlib = "1.6.1"
 }

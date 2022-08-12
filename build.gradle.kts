@@ -38,14 +38,16 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
 buildscript {
-	extensions.add("kotlin_version", Versions.kotlin)
+	/** The JVM target version for Kotlin. */
+	val kotlin = "1.6.21"
+	extensions.add("kotlin_version", kotlin)
 	dependencies {
-		classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}")
+		classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin")
 	}
 }
 
 plugins {
-	kotlin("jvm") version Versions.kotlin
+	kotlin("jvm") version "1.6.21"
 	`java-gradle-plugin`
 	`kotlin-dsl`
 	id("org.jetbrains.dokka") version "1.6.21"
@@ -64,7 +66,40 @@ gradlePlugin {
 }
 
 group = "avail"
-version = "1.6.1.rc2-SNAPSHOT"// Versions.getReleaseVersion()
+version = "2.0.0.rc1-SNAPSHOT"
+
+
+/**
+ * The kotlin version set in the project extension
+ */
+val kotlinVersion get() = project.extensions.getByName("kotlin_version")
+
+/** The JVM target version for Kotlin. */
+val jvmTarget = 17
+
+/** The JVM target version for Kotlin. */
+val jvmTargetString = jvmTarget.toString()
+
+/** The language level version of Kotlin. */
+val kotlinLanguage = "1.6"
+
+/**
+ * The location of the properties file that contains the last published
+ * release of the avail libraries.
+ */
+@Suppress("MemberVisibilityCanBePrivate")
+val releaseVersionFile =
+	"src/main/resources/releaseVersion.properties"
+
+/**
+ * The version for `org.availlang:avail`.
+ */
+val availVersion = "1.6.1"
+
+/**
+ * The version for `org.availlang:avail-stdlib`.
+ */
+val availStdlib = "1.6.1"
 
 repositories {
 	mavenLocal()
@@ -73,35 +108,35 @@ repositories {
 
 java {
 	toolchain {
-		languageVersion.set(JavaLanguageVersion.of(Versions.jvmTarget))
+		languageVersion.set(JavaLanguageVersion.of(jvmTarget))
 	}
 }
 
 kotlin {
 	jvmToolchain {
 		(this as JavaToolchainSpec).languageVersion.set(
-			JavaLanguageVersion.of(Versions.jvmTargetString))
+			JavaLanguageVersion.of(jvmTargetString))
 	}
 }
 
 dependencies {
-	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}")
-	implementation("org.availlang:avail-artifact:2.0.0-SNAPSHOT")
+	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+	api("org.availlang:avail-artifact:2.0.0-SNAPSHOT")
 }
 
 tasks {
 
 	withType<JavaCompile> {
 		options.encoding = "UTF-8"
-		sourceCompatibility = Versions.jvmTargetString
-		targetCompatibility = Versions.jvmTargetString
+		sourceCompatibility = jvmTargetString
+		targetCompatibility = jvmTargetString
 	}
 
 	withType<KotlinCompile> {
 		kotlinOptions {
-			jvmTarget = Versions.jvmTargetString
+			jvmTarget = jvmTargetString
 			freeCompilerArgs = listOf("-Xjvm-default=all-compatibility")
-			languageVersion = Versions.kotlinLanguage
+			languageVersion = kotlinLanguage
 		}
 	}
 	withType<Test> {
@@ -109,8 +144,7 @@ tasks {
 			project.extensions.getByType(JavaToolchainService::class)
 		javaLauncher.set(
 			toolChains.launcherFor {
-				languageVersion.set(JavaLanguageVersion.of(
-					Versions.jvmTarget))
+				languageVersion.set(JavaLanguageVersion.of(jvmTarget))
 			})
 		testLogging {
 			events = setOf(FAILED)
@@ -132,7 +166,6 @@ tasks {
 	}
 
 	val dokkaHtml by getting(DokkaTask::class)
-
 	val javadocJar by creating(Jar::class)
 	{
 		dependsOn(dokkaHtml)
@@ -158,6 +191,7 @@ tasks {
 
 	artifacts {
 		add("archives", sourceJar)
+		add("archives", javadocJar)
 	}
 }
 

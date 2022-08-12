@@ -51,7 +51,6 @@ class AvailPlugin : Plugin<Project>
 		// Create Custom Project Configurations
 		target.configurations.run {
 			create(AVAIL_LIBRARY)
-//			create(AvailWorkbenchTask.WORKBENCH_INTERNAL_CONFIG)
 		}
 
 		// Create AvailExtension and attach it to the target host Project
@@ -72,14 +71,9 @@ class AvailPlugin : Plugin<Project>
 
 			val availLibConfig =
 				target.configurations.getByName(AVAIL_LIBRARY)
-			if (extension.useAvailStdLib)
-			{
-				val stdlibVer = extension.availStandardLibrary!!.stdlibVersion
-				val stdlibDependency = target.dependencies
-					.create("$AVAIL_STDLIB_DEP:$stdlibVer")
-				availLibConfig.dependencies.add(stdlibDependency)
-				extension.root(extension.availStandardLibrary!!.root(
-					extension.rootsDirectory))
+			extension.rootDependencies.forEach {
+				val dependency = it.dependency(target)
+				availLibConfig.dependencies.add(dependency)
 			}
 			// Putting the call into a `doLast` block forces this to only be
 			// executed when explicitly run.
@@ -87,20 +81,11 @@ class AvailPlugin : Plugin<Project>
 				project.mkdir(extension.rootsDirectory)
 				project.mkdir(extension.repositoryDirectory)
 				availLibConfig.resolve().forEach {
-					val targetFile =
-						if (extension.useAvailStdLib
-							&& it.name.contains(AVAIL_STDLIB_BASE_JAR_NAME))
-						{
-							val vv = getImplementationVersion(it)
-							println("Adding Avail Standard Library: $vv")
-							extension.availStandardLibrary!!.jar(
-								extension.rootsDirectory)
+					File("${extension.rootsDirectory}/${it.name}")
+						.apply {
+							println("Adding Avail Library Dependency $name")
+							it.copyTo(this, true)
 						}
-						else
-						{
-							File("${extension.rootsDirectory}/$it.name")
-						}
-					it.copyTo(targetFile, true)
 				}
 				extension.createRoots.values.forEach {
 					it.create(project, extension)
@@ -118,6 +103,8 @@ class AvailPlugin : Plugin<Project>
 			dependsOn("initializeAvail")
 			println(extension.printableConfig)
 		}
+
+		target.tasks.register("availArtifactJar", PackageAvailArtifactTask::class.java)
 
 //		target.tasks.register(
 //			"assembleAndRunWorkbench", AvailWorkbenchTask::class.java)
@@ -177,8 +164,21 @@ class AvailPlugin : Plugin<Project>
 		 * The dependency group-artifact String dependency that points to the
 		 * published Avail Standard Library Jar. This is absent the version.
 		 */
+		internal const val AVAIL_STDLIB_DEP_GRP: String = "org.availlang"
+
+		/**
+		 * The dependency group-artifact String dependency that points to the
+		 * published Avail Standard Library Jar. This is absent the version.
+		 */
+		internal const val AVAIL_STDLIB_DEP_ARTIFACT_NAME: String =
+			"avail-stdlib"
+
+		/**
+		 * The dependency group-artifact String dependency that points to the
+		 * published Avail Standard Library Jar. This is absent the version.
+		 */
 		internal const val AVAIL_STDLIB_DEP: String =
-			"org.availlang:avail-stdlib"
+			"$AVAIL_STDLIB_DEP_GRP:$AVAIL_STDLIB_DEP_ARTIFACT_NAME"
 
 		/**
 		 * The name of the custom [Project] [Configuration], `availLibrary`,

@@ -31,7 +31,6 @@
  */
 package avail.plugin
 
-import avail.plugin.AvailPlugin.Companion.AVAIL_STDLIB_BASE_JAR_NAME
 import org.gradle.api.Project
 import java.net.URI
 
@@ -51,6 +50,29 @@ open class AvailExtension constructor(
 	private val plugin: AvailPlugin)
 {
 	/**
+	 * The [PackageAvailArtifact] used to configure Avail artifact construction.
+	 */
+	private val packageAvailArtifact by lazy {
+		PackageAvailArtifact(project, this)
+	}
+
+	/**
+	 * The absolute path to the jar file that will be created.
+	 *
+	 * It is set to the following by default:
+	 * ```
+	 * "$outputDirectory$artifactName-$version.jar"
+	 * ```
+	 */
+	@Suppress("MemberVisibilityCanBePrivate")
+	val targetOutputJar: String get() = packageAvailArtifact.targetOutputJar
+
+	/**
+	 * The description of the project that is included in the Avail artifact.
+	 */
+	var projectDescription: String = ""
+
+	/**
 	 * The directory location where the Avail roots exist. The path to this
 	 * location must be absolute.
 	 */
@@ -59,7 +81,7 @@ open class AvailExtension constructor(
 			"${project.projectDir.absolutePath}/$defaultAvailRootsDirectory"
 		set(value)
 		{
-			availStandardLibrary?.root(value)?.let { root(it) }
+			root(availStandardLibrary.root(value))
 			field = value
 		}
 
@@ -73,7 +95,8 @@ open class AvailExtension constructor(
 	/**
 	 * The [AvailStandardLibrary] if it is being used by this project.
 	 */
-	internal var availStandardLibrary: AvailStandardLibrary? = null
+	internal var availStandardLibrary: AvailStandardLibrary =
+		AvailStandardLibrary()
 
 	/**
 	 * The map of [AvailRoot.name]s to be [AvailRoot]s be included in the Avail
@@ -82,19 +105,65 @@ open class AvailExtension constructor(
 	internal val roots: MutableMap<String, AvailRoot> = mutableMapOf()
 
 	/**
+	 * The list of external [AvailLibraryDependency]s to be included from Maven
+	 * repositories.
+	 */
+	internal val rootDependencies = mutableListOf<AvailLibraryDependency>()
+
+	/**
 	 * This function informs the plugin to include the Avail Standard Library
-	 * as a root.
+	 * as a root from a Maven repository.
 	 *
 	 * @param configure
 	 *   The lambda that allows for configuring the [AvailStandardLibrary].
 	 */
 	@Suppress("Unused")
-	fun useStdAvailLib (configure: AvailStandardLibrary.() -> Unit)
+	fun includeStdAvailLibDependency (configure: AvailStandardLibrary.() -> Unit)
 	{
-		val asl = AvailStandardLibrary(AVAIL_STDLIB_BASE_JAR_NAME)
-		configure(asl)
-		this.availStandardLibrary = asl
-		root(asl.root(rootsDirectory))
+		configure(availStandardLibrary)
+		rootDependencies.add(availStandardLibrary)
+		root(availStandardLibrary.root(rootsDirectory))
+	}
+
+	/**
+	 * Add an Avail library as a root from a Maven repository for the provided
+	 * dependency string.
+	 *
+	 * @param name
+	 *   The name of the root as it will be used by Avail.
+	 * @param dependency
+	 *   The target library's dependency string of the form
+	 *   ```
+	 *   "group:artifactName:version"
+	 *   ```
+	 */
+	@Suppress("Unused")
+	fun includeAvailLibDependency (name: String, dependency: String)
+	{
+		AvailLibraryDependency(name, dependency).apply {
+			this@AvailExtension.rootDependencies.add(this)
+			this@AvailExtension.root(this.root(rootsDirectory))
+		}
+	}
+
+	/**
+	 * Configures the [PackageAvailArtifact] which is used to create the Avail
+	 * artifact.
+	 *
+	 * @param configure
+	 *   The lmbda that allows for configuring the [PackageAvailArtifact].
+	 */
+	fun artifact (configure: PackageAvailArtifact.() -> Unit)
+	{
+		configure(packageAvailArtifact)
+	}
+
+	/**
+	 * Create the Avail Artifact configured by [artifact].
+	 */
+	fun createArtifact ()
+	{
+		packageAvailArtifact.create()
 	}
 
 	/**
@@ -103,13 +172,6 @@ open class AvailExtension constructor(
 	 */
 	internal val createRoots: MutableMap<String, CreateAvailRoot> =
 		mutableMapOf()
-
-	/**
-	 * `true` indicates the Avail Standard Library (`avail-stdlib`) should be
-	 * included in the [roots directory][rootsDirectory]; `false`
-	 * otherwise.
-	 */
-	internal val useAvailStdLib: Boolean get()  = availStandardLibrary != null
 
 	/**
 	 * Raw module header comment. This is typically for a copyright. Will be
@@ -157,6 +219,11 @@ open class AvailExtension constructor(
 	 * @param uri
 	 *   The uri path to the root. This defaults to the root URI to be located
 	 *   in the [rootsDirectory].
+	 * @param availModuleExtensions
+	 *   The file extensions that signify files that should be treated as Avail
+	 *   modules.
+	 * @param entryPoints
+	 *   The Avail entry points exposed by this root.
 	 * @param description
 	 *   An optional description of this root.
 	 * @param initializer
@@ -167,10 +234,18 @@ open class AvailExtension constructor(
 	fun root(
 		name: String,
 		uri: String = "$rootsDirectory/$name",
+		availModuleExtensions: List<String> = listOf("avail"),
+		entryPoints: List<String> = listOf(),
 		description: String = "",
 		initializer: (AvailRoot) -> Unit = {})
 	{
-		root(AvailRoot(name, uri, description, initializer))
+		root(AvailRoot(
+			name,
+			uri,
+			availModuleExtensions,
+			entryPoints,
+			description,
+			initializer))
 	}
 
 	/**
@@ -178,14 +253,29 @@ open class AvailExtension constructor(
 	 *
 	 * @param name
 	 *   The [CreateAvailRoot.name].
+	 * @param availModuleExtensions
+	 *   The file extensions that signify files that should be treated as Avail
+	 *   modules.
+	 * @param entryPoints
+	 *   The Avail entry points exposed by this root.
 	 * @param description
 	 *   An optional description of this root.
 	 * @return
 	 *   The created Root.
 	 */
 	@Suppress("Unused")
-	fun createRoot (name: String, description: String = ""): CreateAvailRoot =
-		CreateAvailRoot(name, "$rootsDirectory/$name", description).apply {
+	fun createRoot (
+		name: String,
+		availModuleExtensions: List<String> = listOf("avail"),
+		entryPoints: List<String> = listOf(),
+		description: String = ""): CreateAvailRoot =
+		CreateAvailRoot(
+			name,
+			"$rootsDirectory/$name",
+			availModuleExtensions,
+			entryPoints,
+			description
+		).apply {
 			createRoots[name] = this
 			roots[name] = this
 		}
@@ -198,8 +288,13 @@ open class AvailExtension constructor(
 		buildString {
 			append("\n========================= Avail Configuration")
 			append(" =========================")
-			availStandardLibrary?.let {
-				append("\n\tStandard Library Version: ${it.stdlibVersion}")
+
+			rootDependencies.forEach {
+				append("\n\tIncluded Library Dependency: \"")
+				append(it.name)
+				append("\", \"")
+				append(it.dependencyString)
+				append('"')
 			}
 			append("\n\tRepository Location: $repositoryDirectory")
 			append("\n\tVM Arguments to include for Avail Runtime:")
