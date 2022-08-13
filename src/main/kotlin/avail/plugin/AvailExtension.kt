@@ -56,6 +56,23 @@ open class AvailExtension constructor(
 		PackageAvailArtifact(project, this)
 	}
 
+	init
+	{
+		val imp = project.configurations.getByName("implementation")
+		imp.dependencies.forEach {
+			if (it.group == AvailPlugin.AVAIL_DEP_GRP && it.name == AvailPlugin.AVAIL)
+			{
+				plugin.hasAvailImport = true
+			}
+		}
+	}
+
+	/**
+	 * `true` indicates the standard library is imported from Maven and used as
+	 * an Avail module root in the project; `false` otherwise.
+	 */
+	internal var usesStdLib = false
+
 	/**
 	 * The absolute path to the jar file that will be created.
 	 *
@@ -64,7 +81,7 @@ open class AvailExtension constructor(
 	 * "$outputDirectory$artifactName-$version.jar"
 	 * ```
 	 */
-	@Suppress("MemberVisibilityCanBePrivate")
+	@Suppress("unused")
 	val targetOutputJar: String get() = packageAvailArtifact.targetOutputJar
 
 	/**
@@ -120,6 +137,7 @@ open class AvailExtension constructor(
 	@Suppress("Unused")
 	fun includeStdAvailLibDependency (configure: AvailStandardLibrary.() -> Unit)
 	{
+		usesStdLib = true
 		configure(availStandardLibrary)
 		rootDependencies.add(availStandardLibrary)
 		root(availStandardLibrary.root(rootsDirectory))

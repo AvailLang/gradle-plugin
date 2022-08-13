@@ -46,11 +46,34 @@ import java.util.jar.JarFile
  */
 class AvailPlugin : Plugin<Project>
 {
+	internal var latestAvailStdLib = ""
+	internal var latestAvail = ""
+	internal var hasAvailImport = false
+
 	override fun apply(target: Project)
 	{
 		// Create Custom Project Configurations
 		target.configurations.run {
-			create(AVAIL_LIBRARY)
+			// Config for acquiring Avail library dependencies
+			create(AVAIL_LIBRARY).apply {
+				isTransitive = false
+				isVisible = false
+				description =
+					"Config for acquiring published Avail library dependencies"
+			}
+
+			// Config for checking latest versions of Avail published libraries.
+			create(CHECK_CONFIG).apply {
+				isTransitive = false
+				isVisible = false
+				description =
+					"Config for checking latest versions of Avail published " +
+						"org.availlang libraries."
+				dependencies.add(
+					target.dependencies.create("$AVAIL_STDLIB_DEP:+"))
+				dependencies.add(
+					target.dependencies.create("$AVAIL_DEP_GRP:$AVAIL:+"))
+			}
 		}
 
 		// Create AvailExtension and attach it to the target host Project
@@ -60,6 +83,17 @@ class AvailPlugin : Plugin<Project>
 				AvailExtension::class.java,
 				target,
 				this)
+
+		target.tasks.register("checkProject", DefaultTask::class.java)
+		{
+			group = AVAIL
+			description = "This checks the configured Avail project and " +
+				"displays warnings, errors, or recomendations"
+
+			doLast {
+				checkProject(target, extension)
+			}
+		}
 
 		target.tasks.register("initializeAvail", DefaultTask::class.java)
 		{
@@ -75,6 +109,7 @@ class AvailPlugin : Plugin<Project>
 				val dependency = it.dependency(target)
 				availLibConfig.dependencies.add(dependency)
 			}
+
 			// Putting the call into a `doLast` block forces this to only be
 			// executed when explicitly run.
 			doLast {
@@ -91,6 +126,7 @@ class AvailPlugin : Plugin<Project>
 					it.create(project, extension)
 				}
 				extension.roots.values.forEach { it.action(it) }
+				checkProject(target, extension)
 			}
 		}
 
@@ -102,49 +138,85 @@ class AvailPlugin : Plugin<Project>
 					"extension."
 			dependsOn("initializeAvail")
 			println(extension.printableConfig)
+			println("Avail Import located: $hasAvailImport")
 		}
 
-		target.tasks.register("availArtifactJar", PackageAvailArtifactTask::class.java)
+		target.tasks.register(
+			"availArtifactJar", PackageAvailArtifactTask::class.java)
+		{
+			dependsOn("checkProject")
+		}
+	}
 
-//		target.tasks.register(
-//			"assembleAndRunWorkbench", AvailWorkbenchTask::class.java)
-//		{
-//			// Create Dependencies
-//			group = AVAIL
-//			description = "My custom workbench build."
-//			workbenchJarBaseName = WORKBENCH
-//			extension.roots.forEach { (t, u) ->  root(t, u.uri)}
-//			maximumJavaHeap = "6g"
-//			vmOption("-ea")
-//			vmOption("-XX:+UseCompressedOops")
-//			vmOption("-DavailDeveloper=true")
-//		}
+	/**
+	 * Check the Avail Project Configuration for any problems or
+	 * recommendations.
+	 *
+	 * @param project
+	 *   The [Project] to use.
+	 */
+	private fun checkProject(project: Project, extension: AvailExtension)
+	{
+		val checkConfig =
+			project.configurations.getByName(CHECK_CONFIG)
+		val resolvedConfig = checkConfig.resolvedConfiguration
+		val resolvedDependencies =
+			resolvedConfig.firstLevelModuleDependencies
+		resolvedDependencies.forEach {
+			if (it.moduleName == AVAIL)
+			{
+				latestAvail = it.moduleVersion
+			}
+			if (it.moduleName == AVAIL_STDLIB_DEP_ARTIFACT_NAME)
+			{
+				latestAvailStdLib = it.moduleVersion
+			}
+		}
 
-//		target.tasks.register(
-//			"assembleArtifact", AvailAssembleTask::class.java)
-//		{
-//			// Create Dependencies
-//			group = AVAIL
-//			description = "Assembles project into deployable, runnable JAR."
-//			jarBaseName = project.name
-//			extension.roots.forEach { (t, u) ->  root(t, u.uri)}
-//			maximumJavaHeap = "6g"
-//			vmOption("-ea")
-//			vmOption("-XX:+UseCompressedOops")
-//			vmOption("-DavailDeveloper=true")
-//		}
-//
-//		target.tasks.register("packageRoots", DefaultTask::class.java)
-//		{
-//			group = AVAIL
-//			description = "Package the roots created in the Avail extension " +
-//				"that have been provided an AvailLibraryPackageContext"
-//			doLast {
-//				extension.createRoots.values.forEach {
-//					it.packageLibrary(target)
-//				}
-//			}
-//		}
+		val imp = project.configurations.getByName("implementation")
+		val ap = project.configurations.getByName("api")
+		(imp.dependencies + ap.dependencies).forEach { d ->
+			if (d.group == AVAIL_DEP_GRP && d.name == AVAIL)
+			{
+				hasAvailImport = true
+				d.version?.let {
+					if (latestAvail.isNotEmpty())
+					{
+						val setV = AvailVersion(it)
+						val latestV = AvailVersion(latestAvail)
+						if (latestV > setV)
+						{
+							println(
+								"A newer version of Avail is " +
+									"available: " +
+									"$AVAIL_DEP_GRP:$AVAIL:$latestAvail")
+						}
+					}
+				}
+			}
+		}
+		if (!hasAvailImport)
+		{
+			println(
+				"WARNING: No Avail dependency: " +
+					"\"$AVAIL_DEP_GRP:$AVAIL:$latestAvail\"")
+		}
+		if (extension.usesStdLib)
+		{
+			val currentV = extension.availStandardLibrary.version
+			if (latestAvailStdLib.isNotEmpty())
+			{
+				val setV = AvailStdLibVersion(currentV)
+				val latestV = AvailStdLibVersion(latestAvailStdLib)
+				if (latestV > setV)
+				{
+					println(
+						"A newer version of the Avail Standard " +
+							"Library is available: " +
+							"$AVAIL_STDLIB_DEP:$latestAvailStdLib")
+				}
+			}
+		}
 	}
 
 	private fun getImplementationVersion(jar: File): String? =
@@ -155,16 +227,9 @@ class AvailPlugin : Plugin<Project>
 	{
 		/**
 		 * The dependency group-artifact String dependency that points to the
-		 * published Avail Workbench Jar. This is absent the version.
-		 */
-		internal const val WORKBENCH_DEP: String =
-			"org.availlang:avail-workbench"
-
-		/**
-		 * The dependency group-artifact String dependency that points to the
 		 * published Avail Standard Library Jar. This is absent the version.
 		 */
-		internal const val AVAIL_STDLIB_DEP_GRP: String = "org.availlang"
+		internal const val AVAIL_DEP_GRP: String = "org.availlang"
 
 		/**
 		 * The dependency group-artifact String dependency that points to the
@@ -178,7 +243,7 @@ class AvailPlugin : Plugin<Project>
 		 * published Avail Standard Library Jar. This is absent the version.
 		 */
 		internal const val AVAIL_STDLIB_DEP: String =
-			"$AVAIL_STDLIB_DEP_GRP:$AVAIL_STDLIB_DEP_ARTIFACT_NAME"
+			"$AVAIL_DEP_GRP:$AVAIL_STDLIB_DEP_ARTIFACT_NAME"
 
 		/**
 		 * The name of the custom [Project] [Configuration], `availLibrary`,
@@ -187,22 +252,15 @@ class AvailPlugin : Plugin<Project>
 		internal const val AVAIL_LIBRARY: String = "availLibrary"
 
 		/**
-		 * The rename that is applied to the [AVAIL_STDLIB_DEP] Jar if it is
-		 * copied into the roots directory given [AvailExtension.useAvailStdLib]
-		 * is `true`.
-		 */
-		internal const val AVAIL_STDLIB_BASE_JAR_NAME: String = "avail-stdlib"
-
-		/**
 		 * The string "avail" that is used to name the [AvailExtension] for the
 		 * hosting [Project].
 		 */
 		internal const val AVAIL = "avail"
 
 		/**
-		 * The string, `workbench`, is the standard label for the avail
-		 * workbench.
+		 * The name of the configuration used to check the latest published
+		 * Avail libraries.
 		 */
-		internal const val WORKBENCH = "workbench"
+		internal const val CHECK_CONFIG = "z017f99c2454b49bcbaedc98aa5cbb39b"
 	}
 }

@@ -34,6 +34,7 @@ package avail.plugin
 
 import org.availlang.artifact.AvailArtifact
 import org.availlang.artifact.AvailArtifactType
+import org.availlang.artifact.PackageType
 import org.availlang.artifact.jar.JvmComponent
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
@@ -72,6 +73,11 @@ class PackageAvailArtifact internal constructor(
 	 * The [AvailArtifactType] of the [AvailArtifact] to create.
 	 */
 	var artifactType: AvailArtifactType = AvailArtifactType.APPLICATION
+
+	/**
+	 * The [PackageType] of the target artifact build.
+	 */
+	var packageType: PackageType = PackageType.JAR
 
 	/**
 	 * The [MessageDigest] algorithm to use to create the digests for all the

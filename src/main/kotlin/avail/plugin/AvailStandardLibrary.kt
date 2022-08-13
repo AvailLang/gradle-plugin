@@ -23,6 +23,6 @@ package avail.plugin
 class AvailStandardLibrary constructor(version: String = "+"):
 	AvailLibraryDependency(
 		AvailPlugin.AVAIL,
-		AvailPlugin.AVAIL_STDLIB_DEP_GRP,
+		AvailPlugin.AVAIL_DEP_GRP,
 		AvailPlugin.AVAIL_STDLIB_DEP_ARTIFACT_NAME,
 		version)
