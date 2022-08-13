@@ -233,8 +233,10 @@ class AvailPlugin : Plugin<Project>
 		if (!hasAvailImport)
 		{
 			println(
-				"WARNING: No Avail dependency: " +
-					"\"$AVAIL_DEP_GRP:$AVAIL:$latestAvail\"")
+				"WARNING: No Avail dependency. Consider adding " +
+					"`implementation(" +
+					"\"$AVAIL_DEP_GRP:$AVAIL:$latestAvail\")` to the " +
+					"`dependencies` section of the build script.")
 		}
 		if (extension.usesStdLib)
 		{
