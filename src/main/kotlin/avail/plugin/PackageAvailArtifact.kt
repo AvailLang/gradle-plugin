@@ -267,7 +267,7 @@ class PackageAvailArtifact internal constructor(
 	fun create ()
 	{
 		CreateAvailArtifactJar.createAvailArtifactJar(
-			project,
+			version,
 			targetOutputJar,
 			artifactType,
 			jvmComponent,

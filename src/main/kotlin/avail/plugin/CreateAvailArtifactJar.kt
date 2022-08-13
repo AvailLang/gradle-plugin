@@ -42,11 +42,12 @@ import org.availlang.artifact.AvailRootArtifactTarget
 import org.availlang.artifact.jar.AvailArtifactJar
 import org.availlang.artifact.jar.AvailArtifactJarBuilder
 import org.availlang.artifact.jar.JvmComponent
-import org.gradle.jvm.tasks.Jar
+import org.gradle.api.DefaultTask
 import java.io.File
-import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.provider.Property
+import java.security.MessageDigest
 import java.util.jar.Attributes
 import java.util.jar.JarFile
 import java.util.zip.ZipFile
@@ -62,11 +63,18 @@ import java.util.zip.ZipFile
  *
  * @author Richard Arriaga
  */
-open class CreateAvailArtifactJar : Jar()
+abstract class CreateAvailArtifactJar : DefaultTask()
 {
+	/**
+	 * The [AvailExtension] for the given project.
+	 */
+	private val availExtension: AvailExtension get() = project.extensions
+		.findByType(AvailExtension::class.java)!!
+
 	/**
 	 * The name of the [Configuration] that the dependencies are added to.
 	 */
+	@Internal
 	private val configName = "_createAvailArtifact$name"
 
 	/**
@@ -78,10 +86,23 @@ open class CreateAvailArtifactJar : Jar()
 	}
 
 	/**
+	 * The base name of the artifact.
+	 */
+	@get:Input
+	abstract val artifactName: Property<String>
+
+	/**
+	 * The version to give to the created artifact
+	 * ([Attributes.Name.IMPLEMENTATION_VERSION]).
+	 */
+	@get:Input
+	abstract val version: Property<String>
+
+	/**
 	 * The [AvailArtifactType] of the [AvailArtifact] to create.
 	 */
 	@Input
-	var artifactType: AvailArtifactType = AvailArtifactType.LIBRARY
+	var artifactType: AvailArtifactType = AvailArtifactType.APPLICATION
 
 	/**
 	 * The [JvmComponent] that describes any JVM components being packaged in
@@ -105,16 +126,39 @@ open class CreateAvailArtifactJar : Jar()
 	var implementationTitle: String = project.name
 
 	/**
-	 * The absolute path to the location where the jar file is to be written.
+	 * The [MessageDigest] algorithm to use to create the digests for all the
+	 * Avail roots' contents included in the artifact. This must be a valid
+	 * algorithm accessible from [java.security.MessageDigest.getInstance].
+	 */
+	@Input
+	var artifactDigestAlgorithm: String = "SHA-256"
+
+	/**
+	 * The absolute path to the directory location where the jar file is to be
+	 * written.
 	 *
 	 * It is set to the following by default:
 	 * ```
-	 * "${project.buildDir}/libs/${project.name}-${project.version}.jar"
+	 * "${project.buildDir}/libs/"
 	 * ```
 	 */
 	@Input
-	var outputJarTargetFile =
-		"${project.buildDir}/libs/${project.name}-${project.version}.jar"
+	var outputDirectory = "${project.buildDir}/libs/"
+
+	/**
+	 * The absolute path to the jar file that will be created.
+	 *
+	 * It is set to the following by default:
+	 * ```
+	 * "$outputDirectory$artifactName-$version.jar"
+	 * ```
+	 */
+	private val targetOutputJar: String get()
+	{
+		val suffix =
+			if(version.get().isNotBlank()) { "-$version.jar" } else { ".jar" }
+		return "$outputDirectory${artifactName.get()}$suffix"
+	}
 
 	/**
 	 * The list of [AvailRootArtifactTarget]s to add to the artifact jar.
@@ -122,21 +166,40 @@ open class CreateAvailArtifactJar : Jar()
 	private val roots = mutableListOf<AvailRootArtifactTarget>()
 
 	/**
-	 * Add the [AvailRootArtifactTarget] to be included in the artifact jar.
+	 * Add the Avail root to be included in the artifact jar.
+	 *
+	 * **NOTE** The root must be present in the [AvailExtension],`avail {}`,
+	 * added with either:
+	 *  * [AvailExtension.includeAvailLibDependency]
+	 *  * [AvailExtension.includeStdAvailLibDependency]
 	 *
 	 * @param root
-	 *   The [AvailRootArtifactTarget].
+	 *   The [AvailRoot.name] of the [AvailRoot] to include in the artifact.
 	 */
 	@Suppress("unused")
-	fun addRoot (root: AvailRootArtifactTarget)
+	fun addRoot (root: String)
 	{
-		roots.add(root)
+		val targetRoot = availExtension.roots[root]
+		if (targetRoot == null)
+		{
+			System.err.println(
+				"Added AvailRoot, $root, to CreateAvailArtifactJar task, " +
+					"$name in $group group, but this root has not been " +
+					"configured for use in the AvailExtension section, " +
+					"avail {}, of the build script. To add this root to " +
+					"the AvailExtension configuration block use " +
+					"`includeAvailLibDependency()`.")
+			return
+		}
+
+		roots.add(targetRoot.availRootArtifactTarget(artifactDigestAlgorithm))
 	}
 
 	/**
 	 * The list of [File] - target directory inside artifact for it to be placed
 	 * [Pair]s.
 	 */
+	@Internal
 	private val includedFiles = mutableListOf<Pair<File, String>>()
 
 	/**
@@ -163,6 +226,7 @@ open class CreateAvailArtifactJar : Jar()
 	/**
 	 * The list of [JarFile]s to add to the artifact jar.
 	 */
+	@Internal
 	private val jars = mutableListOf<JarFile>()
 
 	/**
@@ -180,6 +244,7 @@ open class CreateAvailArtifactJar : Jar()
 	/**
 	 * The list of [ZipFile]s to add to the artifact jar.
 	 */
+	@Internal
 	private val zipFiles = mutableListOf<ZipFile>()
 
 	/**
@@ -198,6 +263,7 @@ open class CreateAvailArtifactJar : Jar()
 	 * The list of [File] directories whose contents should be added to
 	 * the artifact jar.
 	 */
+	@Internal
 	private val directories = mutableListOf<File>()
 
 	/**
@@ -251,8 +317,8 @@ open class CreateAvailArtifactJar : Jar()
 	fun createAvailArtifactJar ()
 	{
 		createAvailArtifactJar(
-			project,
-			outputJarTargetFile,
+			version.get(),
+			targetOutputJar,
 			artifactType,
 			jvmComponent,
 			implementationTitle,
@@ -270,8 +336,9 @@ open class CreateAvailArtifactJar : Jar()
 		/**
 		 * Create an [AvailArtifactJar].
 		 *
-		 * @param project
-		 *   The active Gradle [Project].
+		 * @param version
+		 *   The version to give to the created artifact
+		 *   ([Attributes.Name.IMPLEMENTATION_VERSION]).
 		 * @param outputLocation
 		 *   The Jar file location where the jar file will be written.
 		 * @param artifactType
@@ -298,7 +365,7 @@ open class CreateAvailArtifactJar : Jar()
 		 *   the artifact jar.
 		 */
 		fun createAvailArtifactJar (
-			project: Project,
+			version: String,
 			outputLocation: String,
 			artifactType: AvailArtifactType,
 			jvmComponent: JvmComponent,
@@ -321,7 +388,7 @@ open class CreateAvailArtifactJar : Jar()
 
 			val jarBuilder = AvailArtifactJarBuilder(
 				outputLocation,
-				project.version.toString(),
+				version,
 				implementationTitle,
 				AvailArtifactManifest.manifestFile(
 					artifactType,

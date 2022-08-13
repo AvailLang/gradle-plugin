@@ -35,6 +35,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.UnknownConfigurationException
 import java.io.File
 import java.util.jar.Attributes
 import java.util.jar.JarFile
@@ -173,27 +174,61 @@ class AvailPlugin : Plugin<Project>
 			}
 		}
 
-		val imp = project.configurations.getByName("implementation")
-		val ap = project.configurations.getByName("api")
-		(imp.dependencies + ap.dependencies).forEach { d ->
-			if (d.group == AVAIL_DEP_GRP && d.name == AVAIL)
-			{
-				hasAvailImport = true
-				d.version?.let {
-					if (latestAvail.isNotEmpty())
+		try
+		{
+			project.configurations.getByName("implementation")
+				.dependencies.forEach { d ->
+					if (d.group == AVAIL_DEP_GRP && d.name == AVAIL)
 					{
-						val setV = AvailVersion(it)
-						val latestV = AvailVersion(latestAvail)
-						if (latestV > setV)
-						{
-							println(
-								"A newer version of Avail is " +
-									"available: " +
-									"$AVAIL_DEP_GRP:$AVAIL:$latestAvail")
+						hasAvailImport = true
+						d.version?.let {
+							if (latestAvail.isNotEmpty())
+							{
+								val setV = AvailVersion(it)
+								val latestV = AvailVersion(latestAvail)
+								if (latestV > setV)
+								{
+									println(
+										"A newer version of Avail is " +
+											"available: " +
+											"$AVAIL_DEP_GRP:$AVAIL:$latestAvail")
+								}
+							}
 						}
 					}
 				}
-			}
+		}
+		catch (e: UnknownConfigurationException)
+		{
+			// Do nothing
+		}
+		try
+		{
+			project.configurations.getByName("api")
+				.dependencies.forEach { d ->
+					if (d.group == AVAIL_DEP_GRP && d.name == AVAIL)
+					{
+						hasAvailImport = true
+						d.version?.let {
+							if (latestAvail.isNotEmpty())
+							{
+								val setV = AvailVersion(it)
+								val latestV = AvailVersion(latestAvail)
+								if (latestV > setV)
+								{
+									println(
+										"A newer version of Avail is " +
+											"available: " +
+											"$AVAIL_DEP_GRP:$AVAIL:$latestAvail")
+								}
+							}
+						}
+					}
+				}
+		}
+		catch (e: UnknownConfigurationException)
+		{
+			// Do nothing
 		}
 		if (!hasAvailImport)
 		{
