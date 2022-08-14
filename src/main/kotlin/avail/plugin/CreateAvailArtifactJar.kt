@@ -36,12 +36,12 @@ import org.availlang.artifact.ArtifactDescriptor
 import org.availlang.artifact.AvailArtifactType
 import org.gradle.api.tasks.*
 import org.availlang.artifact.manifest.AvailArtifactManifest
-import org.availlang.artifact.manifest.AvailManifestRoot
+import org.availlang.artifact.manifest.AvailRootManifest
 import org.availlang.artifact.AvailArtifact
-import org.availlang.artifact.AvailRootArtifactTarget
 import org.availlang.artifact.jar.AvailArtifactJar
 import org.availlang.artifact.jar.AvailArtifactJarBuilder
 import org.availlang.artifact.jar.JvmComponent
+import org.availlang.artifact.roots.AvailRoot
 import org.gradle.api.DefaultTask
 import java.io.File
 import org.gradle.api.artifacts.Configuration
@@ -74,7 +74,6 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	/**
 	 * The name of the [Configuration] that the dependencies are added to.
 	 */
-	@Internal
 	private val configName = "_createAvailArtifact$name"
 
 	/**
@@ -163,7 +162,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	/**
 	 * The list of [AvailRootArtifactTarget]s to add to the artifact jar.
 	 */
-	private val roots = mutableListOf<AvailRootArtifactTarget>()
+	private val roots = mutableListOf<AvailRoot>()
 
 	/**
 	 * Add the Avail root to be included in the artifact jar.
@@ -192,14 +191,13 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			return
 		}
 
-		roots.add(targetRoot.availRootArtifactTarget(artifactDigestAlgorithm))
+		roots.add(targetRoot)
 	}
 
 	/**
 	 * The list of [File] - target directory inside artifact for it to be placed
 	 * [Pair]s.
 	 */
-	@Internal
 	private val includedFiles = mutableListOf<Pair<File, String>>()
 
 	/**
@@ -226,7 +224,6 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	/**
 	 * The list of [JarFile]s to add to the artifact jar.
 	 */
-	@Internal
 	private val jars = mutableListOf<JarFile>()
 
 	/**
@@ -244,7 +241,6 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	/**
 	 * The list of [ZipFile]s to add to the artifact jar.
 	 */
-	@Internal
 	private val zipFiles = mutableListOf<ZipFile>()
 
 	/**
@@ -263,7 +259,6 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	 * The list of [File] directories whose contents should be added to
 	 * the artifact jar.
 	 */
-	@Internal
 	private val directories = mutableListOf<File>()
 
 	/**
@@ -371,7 +366,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			jvmComponent: JvmComponent,
 			implementationTitle: String,
 			artifactDescription: String,
-			roots: List<AvailRootArtifactTarget>,
+			roots: List<AvailRoot>,
 			includedFiles: List<Pair<File, String>>,
 			jars: List<JarFile>,
 			zipFiles: List<ZipFile>,
@@ -383,8 +378,8 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 				File(parent).mkdirs()
 				delete()
 			}
-			val manifestMap = mutableMapOf<String, AvailManifestRoot>()
-			roots.forEach { manifestMap[it.rootName] = it.availManifestRoot }
+			val manifestMap = mutableMapOf<String, AvailRootManifest>()
+			roots.forEach { manifestMap[it.name] = it.manifest }
 
 			val jarBuilder = AvailArtifactJarBuilder(
 				outputLocation,
@@ -395,7 +390,10 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 					manifestMap,
 					artifactDescription,
 					jvmComponent))
-			roots.forEach { jarBuilder.addRoot(it) }
+			roots.forEach {
+				println("Adding Root\n\t$it")
+				jarBuilder.addRoot(it)
+			}
 			includedFiles.forEach { jarBuilder.addFile(it.first, it.second) }
 			jars.forEach { jarBuilder.addJar(it) }
 			zipFiles.forEach { jarBuilder.addZip(it) }

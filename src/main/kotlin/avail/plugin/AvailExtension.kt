@@ -31,7 +31,14 @@
  */
 package avail.plugin
 
+import org.availlang.artifact.environment.AvailEnvironment
+import org.availlang.artifact.environment.project.AvailProject
+import org.availlang.artifact.environment.project.ProjectRoot
+import org.availlang.artifact.environment.project.Scheme
+import org.availlang.artifact.roots.AvailRoot
+import org.availlang.artifact.roots.CreateAvailRoot
 import org.gradle.api.Project
+import java.io.File
 import java.net.URI
 
 /**
@@ -94,20 +101,15 @@ open class AvailExtension constructor(
 	 * location must be absolute.
 	 */
 	@Suppress("MemberVisibilityCanBePrivate")
-	var rootsDirectory: String =
-			"${project.projectDir.absolutePath}/$defaultAvailRootsDirectory"
-		set(value)
-		{
-			root(availStandardLibrary.root(value))
-			field = value
-		}
+	internal val rootsDirectory: String =
+		"${project.projectDir.absolutePath}/${AvailProject.ROOTS_DIR}"
 
 	/**
 	 * The directory location where the Avail roots repositories exist.
 	 */
 	@Suppress("MemberVisibilityCanBePrivate")
 	var repositoryDirectory: String =
-		"${project.projectDir.absolutePath}/$defaultRepositoryDirectory"
+		"${project.projectDir.absolutePath}/${AvailEnvironment.availHomeRepos}"
 
 	/**
 	 * The [AvailStandardLibrary] if it is being used by this project.
@@ -140,7 +142,9 @@ open class AvailExtension constructor(
 		usesStdLib = true
 		configure(availStandardLibrary)
 		rootDependencies.add(availStandardLibrary)
-		root(availStandardLibrary.root(rootsDirectory))
+
+		root(availStandardLibrary.root(
+			availStandardLibrary.group.replace(".", "/")))
 	}
 
 	/**
@@ -160,7 +164,7 @@ open class AvailExtension constructor(
 	{
 		AvailLibraryDependency(name, dependency).apply {
 			this@AvailExtension.rootDependencies.add(this)
-			this@AvailExtension.root(this.root(rootsDirectory))
+			this@AvailExtension.root(this.root(group.replace(".", "/")))
 		}
 	}
 
@@ -234,9 +238,6 @@ open class AvailExtension constructor(
 	 *
 	 * @param name
 	 *   The name of the root to add.
-	 * @param uri
-	 *   The uri path to the root. This defaults to the root URI to be located
-	 *   in the [rootsDirectory].
 	 * @param availModuleExtensions
 	 *   The file extensions that signify files that should be treated as Avail
 	 *   modules.
@@ -251,19 +252,62 @@ open class AvailExtension constructor(
 	@Suppress("Unused")
 	fun root(
 		name: String,
-		uri: String = "$rootsDirectory/$name",
 		availModuleExtensions: List<String> = listOf("avail"),
 		entryPoints: List<String> = listOf(),
 		description: String = "",
 		initializer: (AvailRoot) -> Unit = {})
 	{
-		root(AvailRoot(
+		root(
+			AvailRoot(
 			name,
-			uri,
+			ProjectRoot(name, Scheme.FILE, project.rootDir.absolutePath),
+			packageAvailArtifact.artifactDigestAlgorithm,
 			availModuleExtensions,
 			entryPoints,
 			description,
 			initializer))
+	}
+
+	/**
+	 * Add an Avail root with the provided name and [URI].
+	 *
+	 * There is no need to prefix the file scheme, `file://`, if it exists on
+	 * the local file system; otherwise the scheme should be prefixed.
+	 *
+	 * @param name
+	 *   The name of the root to add.
+	 * @param jarFileName
+	 *   The jar's [File.getName].
+	 * @param availModuleExtensions
+	 *   The file extensions that signify files that should be treated as Avail
+	 *   modules.
+	 * @param entryPoints
+	 *   The Avail entry points exposed by this root.
+	 * @param description
+	 *   An optional description of this root.
+	 * @param initializer
+	 *   A lambda that accepts the created [AvailRoot] and is executed after
+	 *   all roots have been added.
+	 */
+	@Suppress("Unused")
+	fun rootJar(
+		name: String,
+		jarFileName: String,
+		availModuleExtensions: List<String> = listOf("avail"),
+		entryPoints: List<String> = listOf(),
+		description: String = "",
+		initializer: (AvailRoot) -> Unit = {})
+	{
+		root(
+			AvailRoot(
+				name,
+				ProjectRoot(
+					jarFileName, Scheme.JAR, project.rootDir.absolutePath),
+				packageAvailArtifact.artifactDigestAlgorithm,
+				availModuleExtensions,
+				entryPoints,
+				description,
+				initializer))
 	}
 
 	/**
@@ -289,7 +333,8 @@ open class AvailExtension constructor(
 		description: String = ""): CreateAvailRoot =
 		CreateAvailRoot(
 			name,
-			"$rootsDirectory/$name",
+			ProjectRoot(name, Scheme.FILE, project.rootDir.absolutePath),
+			packageAvailArtifact.artifactDigestAlgorithm,
 			availModuleExtensions,
 			entryPoints,
 			description
@@ -323,7 +368,7 @@ open class AvailExtension constructor(
 			append("\n\tRoots Location: $rootsDirectory")
 			append("\n\tIncluded Roots:")
 			roots.values.sorted().forEach {
-				append("\n\t\t• ${it.name}: ${it.uri}")
+				append("\n\t\t• ${it.name}: ${it.absolutePath}")
 			}
 			append("\n\tCreated Roots:")
 			createRoots.values.sorted().forEach {
@@ -332,24 +377,4 @@ open class AvailExtension constructor(
 			append("\n====================================")
 			append("====================================\n")
 		}
-
-	companion object
-	{
-		/**
-		 * The directory location where the Avail roots exist.
-		 */
-		private const val defaultAvailRootsDirectory: String = ".avail/roots"
-
-		/**
-		 * The directory location where the Avail roots repositories exist.
-		 */
-		private const val defaultRepositoryDirectory: String =
-			".avail/repositories"
-
-		/**
-		 * The static list of Workbench VM arguments.
-		 */
-		private val standardWorkbenchVmOptions = listOf(
-			"-ea", "-XX:+UseCompressedOops", "-Xmx6g", "-DavailDeveloper=true")
-	}
 }

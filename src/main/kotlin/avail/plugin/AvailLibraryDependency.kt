@@ -1,5 +1,9 @@
 package avail.plugin
 
+import org.availlang.artifact.environment.project.AvailLibraries
+import org.availlang.artifact.environment.project.AvailProject
+import org.availlang.artifact.environment.project.Scheme
+import org.availlang.artifact.roots.AvailRoot
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
 import java.io.File
@@ -113,18 +117,14 @@ open class AvailLibraryDependency
 	/**
 	 * Provide the corresponding [AvailRoot] for this [AvailLibraryDependency].
 	 *
-	 * @param rootDir
-	 *   The roots directory where the jar file should be.
+	 * @param libRelativeDir
+	 *   The [AvailProject.ROOTS_DIR] relative directory where the jar file
+	 *   should be.
 	 */
-	internal fun root(rootDir: String): AvailRoot =
-		AvailRoot(name, "jar:$rootDir/$artifactName-$version.jar")
-
-	/**
-	 * Answer the file where the library jar should be copied to.
-	 *
-	 * @param rootDir
-	 *   The roots directory where the jar file should be.
-	 */
-	internal fun jar (rootDir: String): File =
-		File("$rootDir/$artifactName-$version.jar")
+	internal fun root(libRelativeDir: String): AvailRoot =
+		AvailRoot(
+			name,
+			AvailLibraries(
+				"$libRelativeDir/$artifactName-$version.jar",
+				Scheme.JAR))
 }

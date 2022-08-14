@@ -36,6 +36,7 @@ import org.availlang.artifact.AvailArtifact
 import org.availlang.artifact.AvailArtifactType
 import org.availlang.artifact.PackageType
 import org.availlang.artifact.jar.JvmComponent
+import org.availlang.artifact.roots.AvailRoot
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
@@ -273,7 +274,7 @@ class PackageAvailArtifact internal constructor(
 			jvmComponent,
 			implementationTitle,
 			artifactDescription,
-			roots.map { it.availRootArtifactTarget(artifactDigestAlgorithm) },
+			roots,
 			includedFiles,
 			jars,
 			zipFiles,

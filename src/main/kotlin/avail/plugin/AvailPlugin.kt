@@ -31,14 +31,13 @@
  */
 package avail.plugin
 
+import org.availlang.artifact.environment.AvailEnvironment
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.UnknownConfigurationException
 import java.io.File
-import java.util.jar.Attributes
-import java.util.jar.JarFile
 
 /**
  * `AvailPlugin` represents the Avail Gradle plugin.
@@ -50,6 +49,12 @@ class AvailPlugin : Plugin<Project>
 	internal var latestAvailStdLib = ""
 	internal var latestAvail = ""
 	internal var hasAvailImport = false
+
+	init
+	{
+		// Make sure .avail is set up in the user's home directory.
+		AvailEnvironment.optionallyCreateAvailUserHome()
+	}
 
 	override fun apply(target: Project)
 	{
@@ -70,8 +75,7 @@ class AvailPlugin : Plugin<Project>
 				description =
 					"Config for checking latest versions of Avail published " +
 						"org.availlang libraries."
-				dependencies.add(
-					target.dependencies.create("$AVAIL_STDLIB_DEP:+"))
+				dependencies.add(AvailStandardLibrary().dependency(target))
 				dependencies.add(
 					target.dependencies.create("$AVAIL_DEP_GRP:$AVAIL:+"))
 			}
@@ -116,15 +120,18 @@ class AvailPlugin : Plugin<Project>
 			doLast {
 				project.mkdir(extension.rootsDirectory)
 				project.mkdir(extension.repositoryDirectory)
-				availLibConfig.resolve().forEach {
-					File("${extension.rootsDirectory}/${it.name}")
-						.apply {
-							println("Adding Avail Library Dependency $name")
-							it.copyTo(this, true)
-						}
+				availLibConfig.resolvedConfiguration.resolvedArtifacts.forEach {
+					val grpPath =
+						it.moduleVersion.id.group.replace(".", "/")
+					val targetDir =
+						"${AvailEnvironment.availHomeLibs}/$grpPath/"
+					File(targetDir).mkdirs()
+					it.file.apply {
+						copyTo(File("$targetDir$name"), true)
+					}
 				}
 				extension.createRoots.values.forEach {
-					it.create(project, extension)
+					it.create(extension.moduleHeaderCommentBody)
 				}
 				extension.roots.values.forEach { it.action(it) }
 				checkProject(target, extension)
@@ -146,6 +153,7 @@ class AvailPlugin : Plugin<Project>
 			"availArtifactJar", PackageAvailArtifactTask::class.java)
 		{
 			dependsOn("checkProject")
+			dependsOn("build")
 		}
 	}
 
@@ -232,6 +240,7 @@ class AvailPlugin : Plugin<Project>
 		}
 		if (!hasAvailImport)
 		{
+			System.err.println()
 			println(
 				"WARNING: No Avail dependency. Consider adding " +
 					"`implementation(" +
@@ -248,17 +257,13 @@ class AvailPlugin : Plugin<Project>
 				if (latestV > setV)
 				{
 					println(
-						"A newer version of the Avail Standard " +
+						"RECOMMENDATION: A newer version of the Avail Standard " +
 							"Library is available: " +
 							"$AVAIL_STDLIB_DEP:$latestAvailStdLib")
 				}
 			}
 		}
 	}
-
-	private fun getImplementationVersion(jar: File): String? =
-		JarFile(jar).manifest
-			.mainAttributes[Attributes.Name("Implementation-Version")] as? String
 
 	companion object
 	{
