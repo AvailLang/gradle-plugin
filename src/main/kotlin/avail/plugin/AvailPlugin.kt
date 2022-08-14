@@ -32,6 +32,7 @@
 package avail.plugin
 
 import org.availlang.artifact.environment.AvailEnvironment
+import org.availlang.artifact.environment.project.AvailProject
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -118,8 +119,8 @@ class AvailPlugin : Plugin<Project>
 			// Putting the call into a `doLast` block forces this to only be
 			// executed when explicitly run.
 			doLast {
-				project.mkdir(extension.rootsDirectory)
-				project.mkdir(extension.repositoryDirectory)
+				project.mkdir(extension.rootsDirectory.fullPath)
+				project.mkdir(extension.repositoryDirectory.fullPath)
 				availLibConfig.resolvedConfiguration.resolvedArtifacts.forEach {
 					val grpPath =
 						it.moduleVersion.id.group.replace(".", "/")
@@ -154,6 +155,20 @@ class AvailPlugin : Plugin<Project>
 		{
 			dependsOn("checkProject")
 			dependsOn("build")
+		}
+
+		target.tasks.register("createProjectFile", DefaultTask::class.java)
+		{
+			group = AVAIL
+			description = "Creates a new AvailProject file based on the " +
+				"configuration of the AvailExtension."
+			dependsOn("initializeAvail")
+
+			doLast {
+				val availProject = extension.createProject()
+				project.rootDir.resolve(AvailProject.CONFIG_FILE_NAME)
+					.writeText(availProject.fileContent)
+			}
 		}
 	}
 

@@ -1,12 +1,11 @@
 package avail.plugin
 
-import org.availlang.artifact.environment.project.AvailLibraries
+import org.availlang.artifact.environment.location.AvailLibraries
 import org.availlang.artifact.environment.project.AvailProject
-import org.availlang.artifact.environment.project.Scheme
+import org.availlang.artifact.environment.location.Scheme
 import org.availlang.artifact.roots.AvailRoot
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Dependency
-import java.io.File
 
 /**
  * Helper used to provide configurability to add an Avail library that is

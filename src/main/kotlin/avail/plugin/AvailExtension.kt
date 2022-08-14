@@ -32,9 +32,9 @@
 package avail.plugin
 
 import org.availlang.artifact.environment.AvailEnvironment
+import org.availlang.artifact.environment.location.*
 import org.availlang.artifact.environment.project.AvailProject
-import org.availlang.artifact.environment.project.ProjectRoot
-import org.availlang.artifact.environment.project.Scheme
+import org.availlang.artifact.environment.project.AvailProjectV1
 import org.availlang.artifact.roots.AvailRoot
 import org.availlang.artifact.roots.CreateAvailRoot
 import org.gradle.api.Project
@@ -97,19 +97,24 @@ open class AvailExtension constructor(
 	var projectDescription: String = ""
 
 	/**
-	 * The directory location where the Avail roots exist. The path to this
-	 * location must be absolute.
+	 * The [AvailLocation] directory where the project's Avail roots exist, not
+	 * imported libraries. By default this is in [AvailProject.ROOTS_DIR] at the
+	 * top level of the project.
 	 */
 	@Suppress("MemberVisibilityCanBePrivate")
-	internal val rootsDirectory: String =
-		"${project.projectDir.absolutePath}/${AvailProject.ROOTS_DIR}"
+	var rootsDirectory: AvailLocation = ProjectHome(
+		AvailProject.ROOTS_DIR,
+		Scheme.FILE,
+		project.projectDir.absolutePath,
+		AvailLocation.LocationType.projectRoots)
 
 	/**
-	 * The directory location where the Avail roots repositories exist.
+	 * The [AvailLocation] directory where the Avail roots repositories exist.
+	 *
+	 * This is set to [AvailEnvironment.availHomeRepos] by default.
 	 */
 	@Suppress("MemberVisibilityCanBePrivate")
-	var repositoryDirectory: String =
-		"${project.projectDir.absolutePath}/${AvailEnvironment.availHomeRepos}"
+	var repositoryDirectory: AvailLocation = AvailRepositories()
 
 	/**
 	 * The [AvailStandardLibrary] if it is being used by this project.
@@ -344,6 +349,21 @@ open class AvailExtension constructor(
 		}
 
 	/**
+	 * Create a new [AvailProject].
+	 *
+	 * @return
+	 *   An [AvailProject] from this [AvailExtension]'s configuration.
+	 */
+	fun createProject (): AvailProject =
+		AvailProjectV1(
+			project.name,
+			true,
+			repositoryDirectory,
+			roots = roots.mapValues {
+				it.value.createProjectRoot(project.rootDir.absolutePath)
+			}.toMutableMap())
+
+	/**
 	 * Create a printable view of this entire [AvailExtension]'s current
 	 * configuration state.
 	 */
@@ -359,12 +379,12 @@ open class AvailExtension constructor(
 				append(it.dependencyString)
 				append('"')
 			}
-			append("\n\tRepository Location: $repositoryDirectory")
+			append("\n\tRepository Location: ${repositoryDirectory.fullPathNoPrefix}")
 			append("\n\tVM Arguments to include for Avail Runtime:")
 			append(roots.values
 				.sorted()
 				.joinToString(";", "\n\t\t• -DavailRoots=") { it.rootString })
-			append("\n\t\t• -Davail.repositories=$repositoryDirectory")
+			append("\n\t\t• -Davail.repositories=${repositoryDirectory.fullPathNoPrefix}")
 			append("\n\tRoots Location: $rootsDirectory")
 			append("\n\tIncluded Roots:")
 			roots.values.sorted().forEach {
