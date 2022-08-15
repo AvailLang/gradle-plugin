@@ -147,7 +147,6 @@ class AvailPlugin : Plugin<Project>
 					"extension."
 			dependsOn("initializeAvail")
 			println(extension.printableConfig)
-			println("Avail Import located: $hasAvailImport")
 		}
 
 		target.tasks.register(
