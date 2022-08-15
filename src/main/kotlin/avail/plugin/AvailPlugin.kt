@@ -156,7 +156,8 @@ class AvailPlugin : Plugin<Project>
 			dependsOn("build")
 		}
 
-		target.tasks.register("createProjectFile", DefaultTask::class.java)
+		target.tasks.register(
+			"createProjectFile", CreateAvailProjectFileTask::class.java)
 		{
 			group = AVAIL
 			description = "Creates a new AvailProject file based on the " +

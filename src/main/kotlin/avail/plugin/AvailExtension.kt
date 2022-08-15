@@ -67,12 +67,15 @@ open class AvailExtension constructor(
 	{
 		val imp = project.configurations.getByName("implementation")
 		imp.dependencies.forEach {
-			if (it.group == AvailPlugin.AVAIL_DEP_GRP && it.name == AvailPlugin.AVAIL)
+			if (it.group == AvailPlugin.AVAIL_DEP_GRP
+				&& it.name == AvailPlugin.AVAIL)
 			{
 				plugin.hasAvailImport = true
 			}
 		}
 	}
+
+
 
 	/**
 	 * `true` indicates the standard library is imported from Maven and used as
