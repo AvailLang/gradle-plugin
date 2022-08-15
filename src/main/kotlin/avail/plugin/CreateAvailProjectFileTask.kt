@@ -48,7 +48,7 @@ abstract class CreateAvailProjectFileTask: DefaultTask()
 	internal fun writeFile ()
 	{
 		val availProject = availExtension.createProject()
-		File("${outputLocation.fullPathNoPrefix}/$fileName")
+		File("${outputLocation.fullPathNoPrefix}${File.separator}$fileName")
 			.writeText(availProject.fileContent)
 	}
 }

@@ -123,9 +123,9 @@ class AvailPlugin : Plugin<Project>
 				project.mkdir(extension.repositoryDirectory.fullPath)
 				availLibConfig.resolvedConfiguration.resolvedArtifacts.forEach {
 					val grpPath =
-						it.moduleVersion.id.group.replace(".", "/")
+						it.moduleVersion.id.group.replace(".", File.separator)
 					val targetDir =
-						"${AvailEnvironment.availHomeLibs}/$grpPath/"
+						"${AvailEnvironment.availHomeLibs}${File.separator}$grpPath${File.separator}"
 					File(targetDir).mkdirs()
 					it.file.apply {
 						copyTo(File("$targetDir$name"), true)
