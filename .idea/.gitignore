@@ -17,3 +17,5 @@ jarRepositories.xml
 /kotlinc.xml
 /uiDesigner.xml
 /jarRepositories.xml
+/codeStyles/
+gradle.xml
