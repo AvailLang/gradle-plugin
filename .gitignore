@@ -1,7 +1,11 @@
 /**/.DS_Store
+/**/*.jpage
 /**/*.ws.kts
-.gradle
+/.gradle
 /.swp
-build
-out
+/build
+/stacks
+/modules.dot
+/out
+/debug
 hs_err_*.log
