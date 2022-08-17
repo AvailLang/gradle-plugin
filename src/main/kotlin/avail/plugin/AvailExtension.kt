@@ -271,6 +271,7 @@ open class AvailExtension constructor(
 				packageAvailArtifact.artifactDigestAlgorithm,
 				availModuleExtensions,
 				entryPoints,
+				mapOf(),
 				description,
 				initializer))
 	}
@@ -313,6 +314,7 @@ open class AvailExtension constructor(
 				packageAvailArtifact.artifactDigestAlgorithm,
 				availModuleExtensions,
 				entryPoints,
+				mapOf(),
 				description,
 				initializer))
 	}
@@ -345,6 +347,7 @@ open class AvailExtension constructor(
 			packageAvailArtifact.artifactDigestAlgorithm,
 			availModuleExtensions,
 			entryPoints,
+			mapOf(),
 			description
 		).apply {
 			createRoots[name] = this
