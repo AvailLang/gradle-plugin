@@ -39,34 +39,32 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
 buildscript {
 	/** The JVM target version for Kotlin. */
-	val kotlin = "1.6.21"
+	val kotlin = "1.7.10"
 	extensions.add("kotlin_version", kotlin)
-	dependencies {
-		classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin")
-	}
 }
 
 plugins {
-	kotlin("jvm") version "1.6.21"
+	kotlin("jvm") version "1.7.10"
 	`java-gradle-plugin`
 	`kotlin-dsl`
 	id("org.jetbrains.dokka") version "1.6.21"
-	id("java-gradle-plugin")
+//	id("java-gradle-plugin")
 	`maven-publish`
-	id("com.gradle.plugin-publish") version "0.18.0"
+	id("com.gradle.plugin-publish") version "1.0.0"
 }
 
-gradlePlugin {
-	plugins {
-		create("avail-plugin") {
-			id = "avail.avail-plugin"
-			implementationClass = "avail.plugin.AvailPlugin"
-		}
-	}
-}
+//gradlePlugin {
+//	plugins {
+//		create("avail-plugin") {
+//			id = "avail.avail-plugin"
+//			implementationClass = "avail.plugin.AvailPlugin"
+////			tags.set(listOf("avail", "languages"))
+//		}
+//	}
+//}
 
-group = "avail"
-version = "2.0.0.rc1-SNAPSHOT"
+group = "org.availlang"
+version = "2.0.0.alpha01"
 
 
 /**
@@ -114,14 +112,13 @@ java {
 
 kotlin {
 	jvmToolchain {
-		(this as JavaToolchainSpec).languageVersion.set(
-			JavaLanguageVersion.of(jvmTargetString))
+		this.languageVersion.set(JavaLanguageVersion.of(jvmTargetString))
 	}
 }
 
 dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-	api("org.availlang:avail-artifact:2.0.0-SNAPSHOT")
+	api("org.availlang:avail-artifact:2.0.0.alpha01")
 }
 
 tasks {
@@ -197,16 +194,16 @@ tasks {
 
 pluginBundle {
 	website = "https://www.availlang.org/"
-	vcsUrl = "<uri to project source repository>"
-	tags = listOf("avail")
+	vcsUrl = "https://github.com/AvailLang/gradle-plugin"
+	tags = listOf("avail", "language")
+	description = "This plugin assists in Avail project setup"
 }
 
 gradlePlugin {
 	plugins {
 		create("avail") {
-			id = "avail"
+			id = "org.availlang.avail-plugin"
 			displayName = "Avail Gradle Plugin"
-			description = "This plugin assists in Avail project setup "
 			implementationClass = "avail.plugin.AvailPlugin"
 		}
 	}
@@ -236,13 +233,13 @@ publishing {
 	// }
 	// rootProject.name = "plugin-test"
 	//```
-	publications {
-		create<MavenPublication>("avail-plugin") {
-			val sourceJar = tasks.getByName("sourceJar") as Jar
-			from(components["java"])
-			artifact(sourceJar)
-		}
-	}
+//	publications {
+//		create<MavenPublication>("avail-plugin") {
+//			val sourceJar = tasks.getByName("sourceJar") as Jar
+//			from(components["java"])
+//			artifact(sourceJar)
+//		}
+//	}
 }
 
 
