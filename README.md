@@ -1,5 +1,9 @@
 Avail Gradle Plugin
 ===============================================================================
+[![Maven Central](https://img.shields.io/badge/maven--central-v2.0.0.alpha01-0f824e)](https://plugins.gradle.org/plugin/org.availlang.avail-plugin)
+
+***NOTE: Documentation is in flux and may not be accurate. Will be made*** 
+***accurate for the official 2.0.0 production release***
 
 The Avail Gradle Plugin, `avail-plugin`, provides Avail-based project setup 
 using a Gradle Plugin. It can be found on [Github](https://github.com/orgs/AvailLang/packages?repo_name=Avail).
@@ -59,16 +63,16 @@ rootProject.name "plugin-test"
 
 To include the plugin, you must add the plugin id, `avail.avail-plugin` and 
 provide the corresponding plugin release version in your Gradle build file. The 
-following is an example that uses the version `1.6.1.rc1`:
+following is an example that uses the version `2.0.0.alpha01`:
 
 **`build.gradle.kts`**
 ```kotlin
-id("avail.avail-plugin") version "1.6.1.rc1"
+id("org.availlang.avail-plugin") version "2.0.0.alpha01"
 ```
 
 **`build.gradle`**
 ```groovy
-id 'avail.avail-plugin' version '1.6.1.rc1'
+id 'org.availlang.avail-plugin' version '2.0.0.alpha01'
 ```
 
 ## Configuration
