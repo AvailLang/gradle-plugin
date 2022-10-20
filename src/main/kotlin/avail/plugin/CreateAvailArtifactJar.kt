@@ -125,6 +125,14 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	var implementationTitle: String = project.name
 
 	/**
+	 * The [Attributes.Name.MAIN_CLASS] for the manifest or an empty string if
+	 * no main class set. This should be the primary main class for starting
+	 * the application.
+	 */
+	@Input
+	var jarManifestMainClass: String = ""
+
+	/**
 	 * The [MessageDigest] algorithm to use to create the digests for all the
 	 * Avail roots' contents included in the artifact. This must be a valid
 	 * algorithm accessible from [java.security.MessageDigest.getInstance].
@@ -160,7 +168,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	}
 
 	/**
-	 * The list of [AvailRootArtifactTarget]s to add to the artifact jar.
+	 * The list of [AvailRoot]s to add to the artifact jar.
 	 */
 	private val roots = mutableListOf<AvailRoot>()
 
@@ -317,6 +325,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			artifactType,
 			jvmComponent,
 			implementationTitle,
+			jarManifestMainClass,
 			artifactDescription,
 			roots,
 			includedFiles,
@@ -347,7 +356,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 		 *   The description of the [AvailArtifact] used in the
 		 *   [AvailArtifactManifest].
 		 * @param roots
-		 *   The list of [AvailRootArtifactTarget]s to add to the artifact jar.
+		 *   The list of [AvailRoot]s to add to the artifact jar.
 		 * @param includedFiles
 		 *   The list of [File] - target directory inside artifact for it to be
 		 *   placed [Pair]s.
@@ -365,6 +374,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			artifactType: AvailArtifactType,
 			jvmComponent: JvmComponent,
 			implementationTitle: String,
+			jarMainClass: String,
 			artifactDescription: String,
 			roots: List<AvailRoot>,
 			includedFiles: List<Pair<File, String>>,
@@ -389,7 +399,8 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 					artifactType,
 					manifestMap,
 					artifactDescription,
-					jvmComponent))
+					jvmComponent),
+				jarMainClass)
 			roots.forEach {
 				println("Adding Root\n\t$it")
 				jarBuilder.addRoot(it)

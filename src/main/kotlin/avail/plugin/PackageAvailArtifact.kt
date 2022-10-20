@@ -63,6 +63,11 @@ class PackageAvailArtifact internal constructor(
 	private val configName = "_packageAvailArtifact"
 
 	/**
+	 * The list of [AvailRoot.name]s to exclude from the artifact.
+	 */
+	private val excludeRoots = mutableSetOf<String>()
+
+	/**
 	 * The [Configuration] for adding [dependencies][Dependency] to be included
 	 * in the workbench jar.
 	 */
@@ -178,6 +183,24 @@ class PackageAvailArtifact internal constructor(
 	}
 
 	/**
+	 * The set of paths to [JarFile]s to add to the artifact jar. The targeted
+	 * [JarFile]s are not resolved until right before creation.
+	 */
+	private val jarFilePaths = mutableSetOf<String>()
+
+	/**
+	 * Add the string path to the [JarFile] to be included in the artifact jar.
+	 *
+	 * @param jarPath
+	 *   The location of the jar path.
+	 */
+	@Suppress("unused")
+	fun addJarPath (jarPath: String)
+	{
+		jarFilePaths.add(jarPath)
+	}
+
+	/**
 	 * The list of [JarFile]s to add to the artifact jar.
 	 */
 	private val jars = mutableListOf<JarFile>()
@@ -256,27 +279,45 @@ class PackageAvailArtifact internal constructor(
 	}
 
 	/**
+	 * Exclude the provided [AvailRoot.name] from the artifact.
+	 *
+	 * @param
+	 */
+	fun excludeRoot(rootName: String)
+	{
+		excludeRoots.add(rootName)
+	}
+
+	/**
 	 * The map of [AvailRoot.name] to [AvailRoot] that will be included in this
 	 * VM option,
 	 */
 	private val roots: List<AvailRoot> get() =
-		availExtension.roots.values.toList()
+		availExtension.roots.values
+			.filter { !excludeRoots.contains(it.name) }
+			.toList()
 
 	/**
 	 * This is the core action that is performed.
 	 */
 	fun create ()
 	{
+		val allJars = mutableListOf<JarFile>()
+		allJars.addAll(jars)
+		jarFilePaths.forEach {
+			allJars.add(JarFile(File(it)))
+		}
 		CreateAvailArtifactJar.createAvailArtifactJar(
 			version,
 			targetOutputJar,
 			artifactType,
 			jvmComponent,
 			implementationTitle,
+			jarManifestMainClass,
 			artifactDescription,
 			roots,
 			includedFiles,
-			jars,
+			allJars,
 			zipFiles,
 			directories,
 			localConfig)
