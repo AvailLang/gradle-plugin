@@ -153,6 +153,12 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	var outputDirectory = "${project.buildDir}/libs/"
 
 	/**
+	 * A map of manifest attribute string name to the string value to add as
+	 * additional fields to the manifest file of an Avail artifact.
+	 */
+	private val customManifestItems = mutableMapOf<String, String>()
+
+	/**
 	 * The absolute path to the jar file that will be created.
 	 *
 	 * It is set to the following by default:
@@ -307,6 +313,20 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 		localConfig.dependencies.add(dependency)
 	}
 
+	/**
+	 * Add a custom field to the manifest file of an Avail artifact.
+	 *
+	 * @param key
+	 *   The [Attributes.Name] String name of the entry to add.
+	 * @param value
+	 *   The value to associate with the key.
+	 */
+	@Suppress("unused")
+	fun addManifestAttributeEntry (key: String, value: String)
+	{
+		customManifestItems[key] = value
+	}
+
 	init
 	{
 		group = "build"
@@ -332,6 +352,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			jars,
 			zipFiles,
 			directories,
+			customManifestItems,
 			localConfig)
 	}
 
@@ -367,6 +388,11 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 		 * @param directories
 		 *   The list of [File] directories whose contents should be added to
 		 *   the artifact jar.
+		 * @param customManifestItems
+		 *   A map of manifest attribute string name to the string value to add as
+		 *   additional fields to the manifest file of an Avail artifact.
+		 * @param dependencyConfiguration
+		 *   The configuration the dependencies are added to.
 		 */
 		fun createAvailArtifactJar (
 			version: String,
@@ -381,6 +407,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			jars: List<JarFile>,
 			zipFiles: List<ZipFile>,
 			directories: List<File>,
+			customManifestItems: Map<String, String>,
 			dependencyConfiguration: Configuration)
 		{
 			println("Creating $outputLocation…")
@@ -400,7 +427,8 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 					manifestMap,
 					artifactDescription,
 					jvmComponent),
-				jarMainClass)
+				jarMainClass,
+				customManifestItems)
 			roots.forEach {
 				println("Adding Root\n\t$it")
 				jarBuilder.addRoot(it)

@@ -98,6 +98,12 @@ class PackageAvailArtifact internal constructor(
 	var artifactName: String = project.name
 
 	/**
+	 * `true` includes the version #, <artifactName>-<version #>.jar, in the
+	 * jar name; `false`, <artifactName>.jar
+	 */
+	var includeVersionInArtifactName: Boolean = true
+
+	/**
 	 * The version to give to the created artifact
 	 * ([Attributes.Name.IMPLEMENTATION_VERSION]).
 	 */
@@ -151,7 +157,14 @@ class PackageAvailArtifact internal constructor(
 	val targetOutputJar: String get()
 	{
 		val suffix =
-			if(version.isNotBlank()) { "-$version.jar" } else { ".jar" }
+			if(includeVersionInArtifactName && version.isNotBlank())
+			{
+				"-$version.jar"
+			}
+			else
+			{
+				".jar"
+			}
 		return "$outputDirectory$artifactName$suffix"
 	}
 
@@ -289,6 +302,26 @@ class PackageAvailArtifact internal constructor(
 	}
 
 	/**
+	 * A map of manifest attribute string name to the string value to add as
+	 * additional fields to the manifest file of an Avail artifact.
+	 */
+	private val customManifestItems = mutableMapOf<String, String>()
+
+	/**
+	 * Add a custom field to the manifest file of an Avail artifact.
+	 *
+	 * @param key
+	 *   The [Attributes.Name] String name of the entry to add.
+	 * @param value
+	 *   The value to associate with the key.
+	 */
+	@Suppress("unused")
+	fun addManifestAttributeEntry (key: String, value: String)
+	{
+		customManifestItems[key] = value
+	}
+
+	/**
 	 * The map of [AvailRoot.name] to [AvailRoot] that will be included in this
 	 * VM option,
 	 */
@@ -320,6 +353,7 @@ class PackageAvailArtifact internal constructor(
 			allJars,
 			zipFiles,
 			directories,
+			customManifestItems,
 			localConfig)
 	}
 }
