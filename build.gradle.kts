@@ -64,7 +64,7 @@ plugins {
 //}
 
 group = "org.availlang"
-version = "2.0.0.alpha11"
+version = "2.0.0.alpha12"
 
 
 /**
@@ -118,7 +118,7 @@ kotlin {
 
 dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-	api("org.availlang:avail-artifact:2.0.0.alpha09")
+	api("org.availlang:avail-artifact:2.0.0.alpha10")
 }
 
 tasks {

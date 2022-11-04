@@ -125,5 +125,9 @@ open class AvailLibraryDependency
 			name,
 			AvailLibraries(
 				"$libRelativeDir/$artifactName-$version.jar",
-				Scheme.JAR))
+				Scheme.JAR,
+				// These libraries have a single rootNameInJar equal to the
+				// name of the directory, and presumably the name of the module
+				// root used by the project.
+				name))
 }

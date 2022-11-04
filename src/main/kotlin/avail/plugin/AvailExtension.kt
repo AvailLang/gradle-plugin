@@ -101,14 +101,15 @@ open class AvailExtension constructor(
 
 	/**
 	 * The [AvailLocation] directory where the project's Avail roots exist, not
-	 * imported libraries. By default this is in [AvailProject.ROOTS_DIR] at the
-	 * top level of the project.
+	 * imported libraries. By default, this is in [AvailProject.ROOTS_DIR] at
+	 * the top level of the project.
 	 */
 	@Suppress("MemberVisibilityCanBePrivate")
 	var rootsDirectory: AvailLocation = ProjectHome(
 		AvailProject.ROOTS_DIR,
 		Scheme.FILE,
-		project.projectDir.absolutePath)
+		project.projectDir.absolutePath,
+		null)
 
 	/**
 	 * The [AvailLocation] directory where the Avail roots repositories exist.
@@ -116,7 +117,8 @@ open class AvailExtension constructor(
 	 * This is set to [AvailEnvironment.availHomeRepos] by default.
 	 */
 	@Suppress("MemberVisibilityCanBePrivate")
-	var repositoryDirectory: AvailLocation = AvailRepositories()
+	var repositoryDirectory: AvailLocation = AvailRepositories(
+		rootNameInJar = null)
 
 	/**
 	 * The [AvailStandardLibrary] if it is being used by this project.
@@ -180,7 +182,7 @@ open class AvailExtension constructor(
 	 * artifact.
 	 *
 	 * @param configure
-	 *   The lmbda that allows for configuring the [PackageAvailArtifact].
+	 *   The lambda that allows for configuring the [PackageAvailArtifact].
 	 */
 	fun artifact (configure: PackageAvailArtifact.() -> Unit)
 	{

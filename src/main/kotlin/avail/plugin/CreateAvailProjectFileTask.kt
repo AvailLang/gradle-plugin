@@ -39,7 +39,8 @@ abstract class CreateAvailProjectFileTask: DefaultTask()
 		ProjectHome(
 			"",
 			Scheme.FILE,
-			project.projectDir.absolutePath)
+			project.projectDir.absolutePath,
+			null)
 
 	/**
 	 * Write the file to the specified location.

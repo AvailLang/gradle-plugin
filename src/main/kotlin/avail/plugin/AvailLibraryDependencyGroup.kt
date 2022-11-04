@@ -133,6 +133,7 @@ open class AvailLibraryDependencyGroup
 				name,
 				AvailLibraries(
 					"$libRelativeDir/$artifactName-$version.jar",
-					Scheme.JAR))
+					Scheme.JAR,
+					rootNameInJar = name))
 		}.toList()
 }
