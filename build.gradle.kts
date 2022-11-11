@@ -39,32 +39,21 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
 buildscript {
 	/** The JVM target version for Kotlin. */
-	val kotlin = "1.7.10"
+	val kotlin = "1.7.21"
 	extensions.add("kotlin_version", kotlin)
 }
 
 plugins {
-	kotlin("jvm") version "1.7.10"
+	kotlin("jvm") version "1.7.21"
 	`java-gradle-plugin`
 	`kotlin-dsl`
 	id("org.jetbrains.dokka") version "1.6.21"
-//	id("java-gradle-plugin")
 	`maven-publish`
 	id("com.gradle.plugin-publish") version "1.0.0"
 }
 
-//gradlePlugin {
-//	plugins {
-//		create("avail-plugin") {
-//			id = "avail.avail-plugin"
-//			implementationClass = "avail.plugin.AvailPlugin"
-////			tags.set(listOf("avail", "languages"))
-//		}
-//	}
-//}
-
 group = "org.availlang"
-version = "2.0.0.alpha14"
+version = "2.0.0.alpha15"
 
 
 /**
@@ -208,38 +197,3 @@ gradlePlugin {
 		}
 	}
 }
-
-
-publishing {
-	repositories {
-		maven {
-			this.
-			name = "localPluginRepository"
-			url = uri("${rootProject.projectDir}/local-plugin-repository")
-		}
-	}
-
-	// You can pull in the locally published maven into another project by adding
-	// this to your settings.gradle.kts file of the project you want to pull the
-	// dependency into:
-	// ```
-	// pluginManagement {
-	//	repositories {
-	//		mavenLocal()
-	//      // Adds the gradle plugin portal back to the plugin repositories as
-	//      // this is removed (overridden) by adding any repository here.
-	//		gradlePluginPortal()
-	//	}
-	// }
-	// rootProject.name = "plugin-test"
-	//```
-//	publications {
-//		create<MavenPublication>("avail-plugin") {
-//			val sourceJar = tasks.getByName("sourceJar") as Jar
-//			from(components["java"])
-//			artifact(sourceJar)
-//		}
-//	}
-}
-
-
