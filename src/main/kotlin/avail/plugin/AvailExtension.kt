@@ -260,8 +260,8 @@ open class AvailExtension constructor(
 	@Suppress("Unused")
 	fun projectRoot(
 		name: String,
-		availModuleExtensions: List<String> = listOf("avail"),
-		entryPoints: List<String> = listOf(),
+		availModuleExtensions: MutableList<String> = mutableListOf("avail"),
+		entryPoints: MutableList<String> = mutableListOf(),
 		description: String = "",
 		initializer: (AvailRoot) -> Unit = {})
 	{
@@ -273,6 +273,7 @@ open class AvailExtension constructor(
 				packageAvailArtifact.artifactDigestAlgorithm,
 				availModuleExtensions,
 				entryPoints,
+				mutableMapOf(),
 				mapOf(),
 				description,
 				initializer))
@@ -303,8 +304,8 @@ open class AvailExtension constructor(
 	fun rootJar(
 		name: String,
 		jarFileName: String,
-		availModuleExtensions: List<String> = listOf("avail"),
-		entryPoints: List<String> = listOf(),
+		availModuleExtensions: MutableList<String> = mutableListOf("avail"),
+		entryPoints: MutableList<String> = mutableListOf(),
 		description: String = "",
 		initializer: (AvailRoot) -> Unit = {})
 	{
@@ -316,6 +317,7 @@ open class AvailExtension constructor(
 				packageAvailArtifact.artifactDigestAlgorithm,
 				availModuleExtensions,
 				entryPoints,
+				mutableMapOf(),
 				mapOf(),
 				description,
 				initializer))
@@ -339,8 +341,8 @@ open class AvailExtension constructor(
 	@Suppress("Unused")
 	fun createProjectRoot (
 		name: String,
-		availModuleExtensions: List<String> = listOf("avail"),
-		entryPoints: List<String> = listOf(),
+		availModuleExtensions: MutableList<String> = mutableListOf("avail"),
+		entryPoints: MutableList<String> = mutableListOf(),
 		description: String = ""): CreateAvailRoot =
 		CreateAvailRoot(
 			name,
@@ -349,6 +351,7 @@ open class AvailExtension constructor(
 			packageAvailArtifact.artifactDigestAlgorithm,
 			availModuleExtensions,
 			entryPoints,
+			mutableMapOf(),
 			mapOf(),
 			description
 		).apply {
