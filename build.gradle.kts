@@ -107,7 +107,7 @@ kotlin {
 
 dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-	api("org.availlang:avail-artifact:2.0.0.alpha17")
+	api("org.availlang:avail-artifact:2.0.0.alpha18")
 }
 
 tasks {
