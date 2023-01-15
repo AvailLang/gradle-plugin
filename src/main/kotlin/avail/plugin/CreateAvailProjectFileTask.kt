@@ -24,7 +24,7 @@ abstract class CreateAvailProjectFileTask: DefaultTask()
 		(project.extensions.getByName(AvailPlugin.AVAIL) as AvailExtension)
 
 	/**
-	 * The name of the configuration file. This defaults to
+	 * The name of the [AvailProject] configuration file. This defaults to
 	 * [AvailProject.CONFIG_FILE_NAME], "avail-config.json"
 	 */
 	@Input

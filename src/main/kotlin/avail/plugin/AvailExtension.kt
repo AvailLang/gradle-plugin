@@ -35,6 +35,7 @@ import org.availlang.artifact.environment.AvailEnvironment
 import org.availlang.artifact.environment.location.*
 import org.availlang.artifact.environment.project.AvailProject
 import org.availlang.artifact.environment.project.AvailProjectV1
+import org.availlang.artifact.environment.project.Palette
 import org.availlang.artifact.roots.AvailRoot
 import org.availlang.artifact.roots.CreateAvailRoot
 import org.gradle.api.Project
@@ -275,6 +276,7 @@ open class AvailExtension constructor(
 				entryPoints,
 				mutableMapOf(),
 				mapOf(),
+				Palette.empty,
 				description,
 				initializer))
 	}
@@ -319,6 +321,7 @@ open class AvailExtension constructor(
 				entryPoints,
 				mutableMapOf(),
 				mapOf(),
+				Palette.empty,
 				description,
 				initializer))
 	}
@@ -353,6 +356,7 @@ open class AvailExtension constructor(
 			entryPoints,
 			mutableMapOf(),
 			mapOf(),
+			Palette.empty,
 			description
 		).apply {
 			createRoots[name] = this

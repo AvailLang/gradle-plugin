@@ -38,10 +38,15 @@ import org.gradle.api.tasks.*
 import org.availlang.artifact.manifest.AvailArtifactManifest
 import org.availlang.artifact.manifest.AvailRootManifest
 import org.availlang.artifact.AvailArtifact
+import org.availlang.artifact.environment.location.ProjectHome
+import org.availlang.artifact.environment.location.Scheme
+import org.availlang.artifact.environment.project.AvailProject
+import org.availlang.artifact.environment.project.Palette
 import org.availlang.artifact.jar.AvailArtifactJar
 import org.availlang.artifact.jar.AvailArtifactJarBuilder
 import org.availlang.artifact.jar.JvmComponent
 import org.availlang.artifact.roots.AvailRoot
+import org.availlang.json.jsonObject
 import org.gradle.api.DefaultTask
 import java.io.File
 import org.gradle.api.artifacts.Configuration
@@ -104,6 +109,20 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	var artifactType: AvailArtifactType = AvailArtifactType.APPLICATION
 
 	/**
+	 * The [ProjectHome] of the [AvailProject] configuration file to use as
+	 * the source of information project specific details to include in the
+	 * artifact build. This defaults to [AvailProject.CONFIG_FILE_NAME],
+	 * "avail-config.json" in the project directory.
+	 */
+	@Input
+	var projectFileLocation: ProjectHome =
+		ProjectHome(
+			AvailProject.CONFIG_FILE_NAME,
+			Scheme.FILE,
+			project.projectDir.absolutePath,
+			null)
+
+	/**
 	 * The [JvmComponent] that describes any JVM components being packaged in
 	 * the artifact or [JvmComponent.NONE] if none.
 	 */
@@ -137,6 +156,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	 * Avail roots' contents included in the artifact. This must be a valid
 	 * algorithm accessible from [java.security.MessageDigest.getInstance].
 	 */
+	@Suppress("unused")
 	@Input
 	var artifactDigestAlgorithm: String = "SHA-256"
 
@@ -339,6 +359,39 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 	@TaskAction
 	fun createAvailArtifactJar ()
 	{
+		val projectFile = File(projectFileLocation.fullPathNoPrefix)
+		val updatedRoots = mutableListOf<AvailRoot>()
+		if (projectFile.exists())
+		{
+			val content = projectFile.readText()
+			val obj = jsonObject(content)
+			AvailProject.from(projectFileLocation.projectHome, obj).apply {
+				this@CreateAvailArtifactJar.roots.map {
+					var p = Palette.empty
+					val rootStyleSheet = this.roots[it.name]?.let { apr ->
+						it.templates.putAll(apr.templates)
+						p = apr.palette
+						apr.stylesheet
+					} ?: mapOf()
+					updatedRoots.add(AvailRoot(
+						it.name,
+						it.location,
+						it.digestAlgorithm,
+						it.availModuleExtensions,
+						it.entryPoints,
+						it.templates,
+						rootStyleSheet,
+						p,
+						it.description,
+						it.action))
+				}
+			}
+		}
+		else
+		{
+			updatedRoots.addAll(roots)
+		}
+
 		createAvailArtifactJar(
 			version.get(),
 			targetOutputJar,
@@ -347,7 +400,7 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			implementationTitle,
 			jarManifestMainClass,
 			artifactDescription,
-			roots,
+			updatedRoots,
 			includedFiles,
 			jars,
 			zipFiles,
@@ -416,7 +469,9 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 				delete()
 			}
 			val manifestMap = mutableMapOf<String, AvailRootManifest>()
-			roots.forEach { manifestMap[it.name] = it.manifest }
+			roots.forEach {
+				manifestMap[it.name] = it.manifest
+			}
 
 			val jarBuilder = AvailArtifactJarBuilder(
 				outputLocation,

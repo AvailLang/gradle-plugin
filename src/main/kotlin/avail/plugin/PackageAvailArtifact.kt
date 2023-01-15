@@ -35,11 +35,17 @@ package avail.plugin
 import org.availlang.artifact.AvailArtifact
 import org.availlang.artifact.AvailArtifactType
 import org.availlang.artifact.PackageType
+import org.availlang.artifact.environment.location.ProjectHome
+import org.availlang.artifact.environment.location.Scheme
+import org.availlang.artifact.environment.project.AvailProject
+import org.availlang.artifact.environment.project.Palette
 import org.availlang.artifact.jar.JvmComponent
 import org.availlang.artifact.roots.AvailRoot
+import org.availlang.json.jsonObject
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
+import org.gradle.api.tasks.Input
 import java.io.File
 import java.security.MessageDigest
 import java.util.jar.Attributes
@@ -79,6 +85,20 @@ class PackageAvailArtifact internal constructor(
 	 * The [AvailArtifactType] of the [AvailArtifact] to create.
 	 */
 	var artifactType: AvailArtifactType = AvailArtifactType.APPLICATION
+
+	/**
+	 * The [ProjectHome] of the [AvailProject] configuration file to use as
+	 * the source of information project specific details to include in the
+	 * artifact build. This defaults to [AvailProject.CONFIG_FILE_NAME],
+	 * "avail-config.json" in the project directory.
+	 */
+	@Input
+	var projectFileLocation: ProjectHome =
+		ProjectHome(
+			AvailProject.CONFIG_FILE_NAME,
+			Scheme.FILE,
+			project.projectDir.absolutePath,
+			null)
 
 	/**
 	 * The [PackageType] of the target artifact build.
@@ -335,6 +355,40 @@ class PackageAvailArtifact internal constructor(
 	 */
 	fun create ()
 	{
+		val projectFile = File(projectFileLocation.fullPathNoPrefix)
+		val updatedRoots = mutableListOf<AvailRoot>()
+		if (projectFile.exists())
+		{
+
+			val content = projectFile.readText()
+			val obj = jsonObject(content)
+			AvailProject.from(projectFileLocation.projectHome, obj).apply {
+				println(roots.keys.joinToString())
+				this@PackageAvailArtifact.roots.map {
+					var p = Palette.empty
+					val rootStyleSheet = this.roots[it.name]?.let { apr ->
+						it.templates.putAll(apr.templates)
+						p = apr.palette
+						apr.stylesheet
+					} ?: mapOf()
+					updatedRoots.add(AvailRoot(
+						it.name,
+						it.location,
+						it.digestAlgorithm,
+						it.availModuleExtensions,
+						it.entryPoints,
+						it.templates,
+						rootStyleSheet,
+						p,
+						it.description,
+						it.action))
+				}
+			}
+		}
+		else
+		{
+			updatedRoots.addAll(roots)
+		}
 		val allJars = mutableListOf<JarFile>()
 		allJars.addAll(jars)
 		jarFilePaths.forEach {
@@ -348,7 +402,7 @@ class PackageAvailArtifact internal constructor(
 			implementationTitle,
 			jarManifestMainClass,
 			artifactDescription,
-			roots,
+			updatedRoots,
 			includedFiles,
 			allJars,
 			zipFiles,
