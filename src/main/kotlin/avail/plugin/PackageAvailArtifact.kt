@@ -38,10 +38,9 @@ import org.availlang.artifact.PackageType
 import org.availlang.artifact.environment.location.ProjectHome
 import org.availlang.artifact.environment.location.Scheme
 import org.availlang.artifact.environment.project.AvailProject
-import org.availlang.artifact.environment.project.Palette
+import org.availlang.artifact.environment.project.StylingGroup
 import org.availlang.artifact.jar.JvmComponent
 import org.availlang.artifact.roots.AvailRoot
-import org.availlang.json.jsonObject
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
@@ -359,27 +358,21 @@ class PackageAvailArtifact internal constructor(
 		val updatedRoots = mutableListOf<AvailRoot>()
 		if (projectFile.exists())
 		{
-
-			val content = projectFile.readText()
-			val obj = jsonObject(content)
-			AvailProject.from(projectFileLocation.projectHome, obj).apply {
+			AvailProject.from(projectFileLocation.fullPathNoPrefix).apply {
 				println(roots.keys.joinToString())
 				this@PackageAvailArtifact.roots.map {
-					var p = Palette.empty
-					val rootStyleSheet = this.roots[it.name]?.let { apr ->
-						it.templates.putAll(apr.templates)
-						p = apr.palette
-						apr.stylesheet
-					} ?: mapOf()
+					val styles = this.roots[it.name]?.let { apr ->
+						it.templateGroup.templates.putAll(apr.templates)
+						apr.styles
+					} ?: StylingGroup()
 					updatedRoots.add(AvailRoot(
 						it.name,
 						it.location,
 						it.digestAlgorithm,
 						it.availModuleExtensions,
 						it.entryPoints,
-						it.templates,
-						rootStyleSheet,
-						p,
+						it.templateGroup,
+						styles,
 						it.description,
 						it.action))
 				}

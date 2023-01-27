@@ -35,7 +35,9 @@ import org.availlang.artifact.environment.AvailEnvironment
 import org.availlang.artifact.environment.location.*
 import org.availlang.artifact.environment.project.AvailProject
 import org.availlang.artifact.environment.project.AvailProjectV1
-import org.availlang.artifact.environment.project.Palette
+import org.availlang.artifact.environment.project.LocalSettings
+import org.availlang.artifact.environment.project.StylingGroup
+import org.availlang.artifact.environment.project.TemplateGroup
 import org.availlang.artifact.roots.AvailRoot
 import org.availlang.artifact.roots.CreateAvailRoot
 import org.gradle.api.Project
@@ -274,9 +276,8 @@ open class AvailExtension constructor(
 				packageAvailArtifact.artifactDigestAlgorithm,
 				availModuleExtensions,
 				entryPoints,
-				mutableMapOf(),
-				mapOf(),
-				Palette.empty,
+				TemplateGroup(),
+				StylingGroup(),
 				description,
 				initializer))
 	}
@@ -319,9 +320,8 @@ open class AvailExtension constructor(
 				packageAvailArtifact.artifactDigestAlgorithm,
 				availModuleExtensions,
 				entryPoints,
-				mutableMapOf(),
-				mapOf(),
-				Palette.empty,
+				TemplateGroup(),
+				StylingGroup(),
 				description,
 				initializer))
 	}
@@ -354,9 +354,8 @@ open class AvailExtension constructor(
 			packageAvailArtifact.artifactDigestAlgorithm,
 			availModuleExtensions,
 			entryPoints,
-			mutableMapOf(),
-			mapOf(),
-			Palette.empty,
+			TemplateGroup(),
+			StylingGroup(),
 			description
 		).apply {
 			createRoots[name] = this
@@ -374,8 +373,11 @@ open class AvailExtension constructor(
 			project.name,
 			true,
 			repositoryDirectory,
+			LocalSettings(project.rootDir.absolutePath),
 			roots = roots.mapValues {
-				it.value.createProjectRoot(project.rootDir.absolutePath)
+				it.value.createProjectRoot(
+					project.name,
+					project.rootDir.absolutePath)
 			}.toMutableMap())
 
 	/**
