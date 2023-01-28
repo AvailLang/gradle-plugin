@@ -362,7 +362,8 @@ class PackageAvailArtifact internal constructor(
 				println(roots.keys.joinToString())
 				this@PackageAvailArtifact.roots.map {
 					val styles = this.roots[it.name]?.let { apr ->
-						it.templateGroup.templates.putAll(apr.templates)
+						it.templateGroup.templates.putAll(
+							apr.templateGroup.templates)
 						apr.styles
 					} ?: StylingGroup()
 					updatedRoots.add(AvailRoot(

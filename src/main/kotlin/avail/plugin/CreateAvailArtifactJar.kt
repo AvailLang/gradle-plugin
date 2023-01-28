@@ -365,7 +365,8 @@ abstract class CreateAvailArtifactJar : DefaultTask()
 			AvailProject.from(projectFileLocation.fullPathNoPrefix).apply {
 				this@CreateAvailArtifactJar.roots.map {
 					val styles = this.roots[it.name]?.let { apr ->
-						it.templateGroup.templates.putAll(apr.templates)
+						it.templateGroup.templates.putAll(
+							apr.templateGroup.templates)
 						apr.styles
 					} ?: StylingGroup()
 					updatedRoots.add(AvailRoot(
