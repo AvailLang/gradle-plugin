@@ -1,6 +1,6 @@
 Avail Gradle Plugin
 ===============================================================================
-[![Maven Central](https://img.shields.io/badge/maven--central-v2.0.0.alpha01-0f824e)](https://plugins.gradle.org/plugin/org.availlang.avail-plugin)
+[![Maven Central](https://img.shields.io/badge/maven--central-v2.0.0.alpha19-0f824e)](https://plugins.gradle.org/plugin/org.availlang.avail-plugin)
 
 ***NOTE: Documentation is in flux and may not be accurate. Will be made*** 
 ***accurate for the official 2.0.0 production release***
@@ -67,12 +67,12 @@ following is an example that uses the version `2.0.0.alpha01`:
 
 **`build.gradle.kts`**
 ```kotlin
-id("org.availlang.avail-plugin") version "2.0.0.alpha01"
+id("org.availlang.avail-plugin") version "2.0.0.alpha19"
 ```
 
 **`build.gradle`**
 ```groovy
-id 'org.availlang.avail-plugin' version '2.0.0.alpha01'
+id 'org.availlang.avail-plugin' version '2.0.0.alpha19'
 ```
 
 ## Configuration
