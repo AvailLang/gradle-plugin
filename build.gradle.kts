@@ -39,17 +39,16 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
 buildscript {
 	/** The JVM target version for Kotlin. */
-	val kotlin = "1.7.21"
+	val kotlin = "1.8.20"
 	extensions.add("kotlin_version", kotlin)
 }
 
 plugins {
-	kotlin("jvm") version "1.7.21"
-	`java-gradle-plugin`
+	kotlin("jvm") version "1.8.20"
 	`kotlin-dsl`
-	id("org.jetbrains.dokka") version "1.6.21"
+	id("org.jetbrains.dokka") version "1.8.20"
 	`maven-publish`
-	id("com.gradle.plugin-publish") version "1.0.0"
+	id("com.gradle.plugin-publish") version "1.2.0"
 }
 
 group = "org.availlang"
@@ -68,7 +67,7 @@ val jvmTarget = 17
 val jvmTargetString = jvmTarget.toString()
 
 /** The language level version of Kotlin. */
-val kotlinLanguage = "1.6"
+val kotlinLanguage = "1.8"
 
 /**
  * The location of the properties file that contains the last published
@@ -181,19 +180,19 @@ tasks {
 	}
 }
 
-pluginBundle {
-	website = "https://www.availlang.org/"
-	vcsUrl = "https://github.com/AvailLang/gradle-plugin"
-	tags = listOf("avail", "language")
-	description = "This plugin assists in Avail project setup"
-}
-
 gradlePlugin {
+	@Suppress("UnstableApiUsage")
+	website.set("https://www.availlang.org/")
+	@Suppress("UnstableApiUsage")
+	vcsUrl.set("https://github.com/AvailLang/gradle-plugin")
 	plugins {
 		create("avail") {
 			id = "org.availlang.avail-plugin"
 			displayName = "Avail Gradle Plugin"
 			implementationClass = "avail.plugin.AvailPlugin"
+			description = "This plugin assists in Avail project setup"
+			@Suppress("UnstableApiUsage")
+			tags.set(listOf("avail", "language"))
 		}
 	}
 }
